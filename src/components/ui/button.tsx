@@ -5,10 +5,10 @@ type ButtonVariant = "primary" | "secondary" | "quiet" | "inverted";
 type ButtonSize = "default" | "small";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-paper hover:bg-accent",
-  secondary: "border border-line bg-transparent text-ink hover:border-ink",
+  primary: "bg-accent text-accent-ink hover:bg-paper hover:text-ink",
+  secondary: "border border-line bg-transparent text-ink hover:border-current hover:bg-surface",
   quiet: "bg-transparent text-ink hover:bg-accent-soft",
-  inverted: "border border-paper/50 bg-transparent text-paper hover:bg-paper hover:text-ink",
+  inverted: "border border-cream/50 bg-transparent text-cream hover:bg-cream hover:text-cream-ink",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

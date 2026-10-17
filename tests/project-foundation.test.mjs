@@ -51,7 +51,7 @@ test("homepage sections have real navigation targets and use shared project card
   const sections = fs.readFileSync(path.join(root, "src/components/home/home-sections.tsx"), "utf8");
 
   for (const target of ["home", "work", "services", "pricing", "about", "journal", "contact"]) {
-    assert.ok(sections.includes(`id="${target}"`) || target === "home", `${target} section has an anchor`);
+    assert.ok(sections.includes(`id="${target}"`) || (target === "contact" && /ContactCta id="contact"/.test(sections)) || target === "home", `${target} section has an anchor`);
   }
 
   for (const route of ["/", "/services", "/work", "/pricing", "/about", "/blog", "/contact"]) {
@@ -60,8 +60,27 @@ test("homepage sections have real navigation targets and use shared project card
 
   assert.match(homepage, /<SelectedWorkSection \/>/);
   assert.match(sections, /import \{ ProjectCard \}/);
-  assert.match(sections, /selectedProjects\.map\(\(project\)/);
-  assert.match(fs.readFileSync(path.join(root, "src/content/projects.ts"), "utf8"), /export const projects: ProjectCaseStudy\[\] = \[\]/);
+  assert.match(sections, /homepageProjects\.map\(\(project\)/);
+  const projects = fs.readFileSync(path.join(root, "src/content/projects.ts"), "utf8");
+  assert.match(projects, /slug: "enterprise-erp-system"/);
+  assert.match(projects, /slug: "gpu-store"/);
+  assert.match(projects, /slug: "the-villagers-cafe"/);
+  assert.match(projects, /slug: "event-community-accounting-erp"/);
+  assert.match(projects, /export const homepageProjects/);
+  assert.match(projects, /featured: true/);
+});
+
+test("case studies use only supplied ERP facts and clearly state architecture and evidence limits", () => {
+  const projects = fs.readFileSync(path.join(root, "src/content/projects.ts"), "utf8");
+  const caseStudy = fs.readFileSync(path.join(root, "src/components/pages/case-study.tsx"), "utf8");
+
+  for (const term of ["HRMS", "Sales", "Accounting", "Invoicing", "Inventory", "CRM", "gRPC", "Protocol Buffers", "FastAPI", "PostgreSQL"]) {
+    assert.ok(projects.toLowerCase().includes(term.toLowerCase()), `ERP case study includes ${term}`);
+  }
+  assert.match(projects, /exact service boundaries are not documented/);
+  assert.match(projects, /deployment and adoption unconfirmed/);
+  assert.match(caseStudy, /No approved screenshots are available/);
+  assert.match(caseStudy, /project\.evidence\.map/);
 });
 
 test("service, work, pricing, about, and case-study routes exist", () => {
@@ -80,15 +99,31 @@ test("service, work, pricing, about, and case-study routes exist", () => {
   assert.match(projectRoute, /if \(!project\) notFound\(\)/);
 });
 
-test("pricing and project links require approval and safe public URLs", () => {
+test("pricing options are centralized and quote-only; project links require approval", () => {
   const pricing = fs.readFileSync(path.join(root, "src/app/pricing/page.tsx"), "utf8");
+  const pricingContent = fs.readFileSync(path.join(root, "src/content/pricing.ts"), "utf8");
   const projectContent = fs.readFileSync(path.join(root, "src/content/projects.ts"), "utf8");
   const caseStudy = fs.readFileSync(path.join(root, "src/components/pages/case-study.tsx"), "utf8");
 
-  for (const category of ["Starter", "Business", "Custom"]) assert.ok(pricing.includes(category));
-  assert.match(pricing, /not been approved/i);
+  for (const option of ["Business Website", "E-commerce Application", "Custom Business Application"]) assert.ok(pricingContent.includes(option));
+  assert.match(pricing, /pricingOptions\.map/);
+  assert.match(pricingContent, /Custom quote after scope discussion/);
+  assert.doesNotMatch(pricingContent, /[$£€]|\bUSD\b/);
   assert.match(projectContent, /approved: true/);
   assert.match(projectContent, /url\.protocol === "https:"/);
   assert.match(projectContent, /getApprovedProjectImage/);
   assert.match(caseStudy, /getApprovedExternalLinks\(project\)/);
+});
+
+test("services use grouped content and native accessible FAQ disclosures", () => {
+  const services = fs.readFileSync(path.join(root, "src/app/services/page.tsx"), "utf8");
+  const siteContent = fs.readFileSync(path.join(root, "src/content/site.ts"), "utf8");
+  const faq = fs.readFileSync(path.join(root, "src/components/ui/faq-section.tsx"), "utf8");
+
+  assert.match(services, /serviceGroups\.map/);
+  assert.match(services, /developmentProcess\.map/);
+  assert.match(siteContent, /question: "Can you work on an existing application\?"/);
+  assert.match(siteContent, /title: "Maintain"/);
+  assert.match(faq, /<details/);
+  assert.match(faq, /<summary/);
 });

@@ -3,12 +3,20 @@
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
+  --color-card: var(--card);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-focus: var(--focus);
+  --color-focus-light: var(--focus-light);
+  --color-cream: var(--cream);
+  --color-cream-ink: var(--cream-ink);
+  --color-cream-muted: var(--cream-muted);
+  --color-cream-line: var(--cream-line);
+  --color-cream-accent: var(--cream-accent);
+  --color-accent-ink: var(--accent-ink);
   --font-sans: var(--font-body);
   --font-display: Georgia, "Times New Roman", serif;
   --spacing-gutter: clamp(1.25rem, 5vw, 5rem);
@@ -19,15 +27,23 @@
 }
 
 :root {
-  color-scheme: light;
-  --paper: #f6f5f1;
-  --surface: #fffefa;
-  --ink: #1b1c19;
-  --muted: #65655e;
-  --line: #d8d7d0;
-  --accent: #a84430;
-  --accent-soft: #efe4df;
-  --focus: #2459a6;
+  color-scheme: dark;
+  --paper: #101010;
+  --surface: #171717;
+  --card: #1c1c1c;
+  --ink: #f4f2ed;
+  --muted: #a5a29d;
+  --line: #363431;
+  --accent: #ff5a35;
+  --accent-soft: #2a1d19;
+  --focus: #ff9878;
+  --cream: #f2efe8;
+  --cream-ink: #171717;
+  --cream-muted: #625e58;
+  --cream-line: #d6d2ca;
+  --cream-accent: #a83820;
+  --focus-light: #2459a6;
+  --accent-ink: #171717;
   --font-body: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   background: var(--paper);
   color: var(--ink);
@@ -82,14 +98,57 @@ textarea {
   background: currentColor;
 }
 
+.faq-item[open] .faq-icon {
+  transform: rotate(45deg);
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 4px;
 }
 
+.theme-light {
+  background: var(--cream);
+  color: var(--cream-ink);
+  color-scheme: light;
+}
+
+.theme-light .text-ink {
+  color: var(--cream-ink);
+}
+
+.theme-light .text-muted {
+  color: var(--cream-muted);
+}
+
+.theme-light .text-accent {
+  color: var(--cream-accent);
+}
+
+.theme-light .border-line {
+  border-color: var(--cream-line);
+}
+
+.theme-light :focus-visible {
+  outline-color: var(--focus-light);
+}
+
+.theme-light .text-paper {
+  color: var(--cream);
+}
+
+.theme-light .hover\:bg-surface:hover {
+  background-color: var(--cream-line);
+}
+
 ::selection {
   background: var(--accent-soft);
   color: var(--ink);
+}
+
+.theme-light ::selection {
+  background: #e2ded5;
+  color: var(--cream-ink);
 }
 
 .prose-editorial {

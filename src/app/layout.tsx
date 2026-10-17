@@ -14,19 +14,19 @@ const geistSans = localFont({
 
 export const metadata: Metadata = {
   metadataBase: getPublicSiteUrl(),
-  title: "Ajmot Hossain — Web Developer",
+  title: "Ajmot Hossain — Full-Stack Developer",
   description: defaultSiteDescription,
   alternates: getCanonicalUrl("/") ? { canonical: getCanonicalUrl("/") } : undefined,
   openGraph: {
     type: "website",
     siteName: "Ajmot Hossain",
-    title: "Ajmot Hossain — Web Developer",
+    title: "Ajmot Hossain — Full-Stack Developer",
     description: defaultSiteDescription,
     ...(getCanonicalUrl("/") ? { url: getCanonicalUrl("/") } : {}),
   },
   twitter: {
     card: "summary",
-    title: "Ajmot Hossain — Web Developer",
+    title: "Ajmot Hossain — Full-Stack Developer",
     description: defaultSiteDescription,
   },
 };

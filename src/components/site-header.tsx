@@ -19,7 +19,7 @@ export function SiteHeader() {
           <nav aria-label="Main navigation" className="hidden items-center gap-5 xl:flex">
             {siteNavigation.map((item) => (
               <Link
-                className="text-[0.8rem] text-muted transition-colors hover:text-ink"
+                className="text-[0.8rem] text-muted transition-colors hover:text-accent"
                 href={item.href}
                 key={item.href}
               >
@@ -27,7 +27,7 @@ export function SiteHeader() {
               </Link>
             ))}
             <ButtonLink className="ml-1" href="/contact" size="small" variant="primary">
-              Start a project
+              Discuss a project
             </ButtonLink>
           </nav>
 
@@ -35,7 +35,7 @@ export function SiteHeader() {
             <summary
               aria-controls="mobile-navigation-panel"
               aria-label="Toggle navigation menu"
-              className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-pill border border-line px-4 text-sm font-medium [&::-webkit-details-marker]:hidden"
+              className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-pill border border-line px-4 text-sm font-medium transition-colors hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
             >
               <span>Menu</span>
               <span aria-hidden="true" className="menu-icon">
@@ -45,7 +45,7 @@ export function SiteHeader() {
             </summary>
             <nav
               aria-label="Mobile navigation"
-              className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(19rem,calc(100vw-2.5rem))] border border-line bg-surface p-3 shadow-[0_1rem_3rem_rgb(27_28_25_/_0.12)]"
+              className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(19rem,calc(100vw-2.5rem))] border border-line bg-surface p-3 shadow-[0_1rem_3rem_rgb(0_0_0_/_0.35)]"
               id="mobile-navigation-panel"
             >
               {siteNavigation.map((item) => (
@@ -58,7 +58,7 @@ export function SiteHeader() {
                 </Link>
               ))}
               <ButtonLink className="mt-3 w-full" href="/contact" variant="primary">
-                Start a project
+                Discuss a project
               </ButtonLink>
             </nav>
           </details>
