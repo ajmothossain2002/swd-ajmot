@@ -7,6 +7,13 @@ export const metadata = createPageMetadata(
   "/work",
 );
 
-export default function WorkPage() {
-  return <main id="main-content"><WorkGrid /></main>;
+export default async function WorkPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string | string[] }>;
+}) {
+  const { category } = await searchParams;
+  const selectedCategory = typeof category === "string" ? category : "";
+
+  return <main id="main-content"><WorkGrid selectedCategory={selectedCategory} /></main>;
 }

@@ -7,12 +7,13 @@ import {
   ProcessSection,
   SelectedWorkSection,
   ServicesSection,
+  StrengthsSection,
 } from "@/components/home/home-sections";
 import { HomeHero } from "@/components/home/home-hero";
 
 export const metadata = createPageMetadata(
-  "Web development for business",
-  "Business websites, frontend development, custom web applications, APIs, and maintenance for practical business needs.",
+  "Full-Stack Developer Building Business-Critical Applications",
+  "Ajmot Hossain builds business systems, interactive web applications, frontend experiences, backend services, and workflow-focused software.",
   "/",
 );
 
@@ -20,6 +21,7 @@ export default function HomePage() {
   return (
     <main id="main-content">
       <HomeHero />
+      <StrengthsSection />
       <SelectedWorkSection />
       <ServicesSection />
       <ProcessSection />
