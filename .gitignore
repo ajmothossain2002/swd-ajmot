@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js build output
+/.next/
+/out/
+
+# local environment files (commit only explicitly safe examples)
+.env*
+!.env.example
+
+# local project guidance and documentation
+/AGENTS.md
+/docs/
+
+# deployment
+/vercel
+
+# tooling and OS files
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+Thumbs.db
