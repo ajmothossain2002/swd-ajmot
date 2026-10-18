@@ -6,6 +6,7 @@ Portfolio and web development business site built with Next.js App Router, TypeS
 
 - Node.js 20.19+, 22.12+, or 24+
 - npm 10 or newer
+- Python 3.9+ and Docker Desktop with Compose v2 for the one-command local CMS launcher
 
 ## Install and run
 
@@ -16,6 +17,31 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### One-command local CMS startup (Windows)
+
+The repository-root Python launcher starts only the PostgreSQL service defined in
+`docker-compose.yml`, waits for its health check, confirms local migrations are current,
+then starts Next.js with its logs in the same terminal:
+
+```cmd
+if not exist .env copy .env.example .env
+python dev.py --check
+python dev.py
+```
+
+Before starting, set the local `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`DATABASE_URL`, and `DIRECT_URL` values in `.env`. Both database URLs must point to
+`localhost:5432` and the Compose database name; the launcher rejects remote hosts such as
+Neon and never edits `.env`. It will not install packages automatically; run `npm ci`
+yourself if it reports that dependencies are missing. If migrations are pending, the
+launcher stops and explains how to review and apply them with `npm run db:migrate:dev`.
+
+Press **Ctrl+C** to stop Next.js; PostgreSQL stays running and its named volume is kept.
+To stop PostgreSQL explicitly without deleting its data, run `python dev.py --stop-db`.
+Never use `docker compose down -v` unless you intentionally want to delete local database
+data. Production remains separate: Vercel uses the configured deployment build, while
+this launcher always forces the local URLs from `.env` into its child processes.
+
 ## Project commands
 
 ```bash
@@ -23,6 +49,7 @@ npm run dev         # Start the development server
 npm run lint        # Run ESLint
 npm run type-check  # Run TypeScript without emitting files
 npm test            # Run Node's built-in test runner
+python -m unittest discover -s tests -p "test_dev_launcher.py"  # Test the local launcher
 npm run build       # Create a production build
 npm run start       # Serve the production build
 ```
@@ -33,14 +60,15 @@ The schema is in `prisma/schema.prisma`; migrations are kept in `prisma/migratio
 Prisma Client is generated into `src/generated/prisma/` during dependency installation.
 Generated files are not committed.
 
-For local PostgreSQL, copy `.env.example` to `.env`, set `POSTGRES_DB`, `POSTGRES_USER`,
-and a local-only `POSTGRES_PASSWORD`, then set both `DATABASE_URL` and `DIRECT_URL` to
-the same local database using the `postgresql://USER:PASSWORD@localhost:5432/DB?schema=public`
-format. Do not use production credentials in this file. Start and stop the database with:
+For local PostgreSQL, set `POSTGRES_DB`, `POSTGRES_USER`, and a local-only
+`POSTGRES_PASSWORD`, then set both `DATABASE_URL` and `DIRECT_URL` to the same local
+database using the `postgresql://USER:PASSWORD@localhost:5432/DB?schema=public` format.
+Do not use production credentials in this file. To manage the database manually:
 
 ```bash
 docker compose up -d postgres
 docker compose ps
+npm run db:migrate:status
 npm run db:validate
 npm run db:migrate:dev -- --name init
 docker compose down
