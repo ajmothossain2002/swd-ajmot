@@ -1,24 +1,39 @@
-import "server-only";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as typeof globalThis & {
-  prisma?: PrismaClient;
-};
+let _prisma: PrismaClient | null = null;
 
-function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+function ensurePrisma(): PrismaClient {
+  if (_prisma) return _prisma;
+
+  if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL must be configured before using the database.");
   }
 
-  return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
-  });
+  _prisma = new PrismaClient();
+  return _prisma;
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+const prismaProxy = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const client = ensurePrisma();
+      // @ts-expect-error dynamic proxy
+      return (client as any)[prop];
+    },
+    has(_target, prop) {
+      const client = ensurePrisma();
+      return prop in (client as any);
+    },
+  },
+) as unknown as PrismaClient;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+export default prismaProxy;
+
+export function getPrisma(): PrismaClient | undefined {
+  try {
+    return ensurePrisma();
+  } catch {
+    return undefined;
+  }
 }
