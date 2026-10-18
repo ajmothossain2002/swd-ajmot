@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 
 export const metadata: Metadata = { title: "Edit blog post" };
 
-export default async function EditPostPage({ params }: PageProps<"/admin/posts/[id]/edit">) {
+export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const { id } = await params;
   return <AdminContentEditor id={id} kind="posts" />;
