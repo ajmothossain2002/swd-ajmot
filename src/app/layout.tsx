@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { defaultSiteDescription, getCanonicalUrl, getPublicSiteUrl } from "@/lib/seo";
@@ -48,6 +49,7 @@ export default function RootLayout({
         <SiteHeader />
         {children}
         <SiteFooter />
+        <SpeedInsights />
       </body>
     </html>
   );
