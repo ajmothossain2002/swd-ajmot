@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata(
-  "Contact",
+  "Contact Ajmot Hossain | Discuss a Project",
   "Send Ajmot Hossain a project enquiry about websites, frontend development, applications, APIs, integrations, or maintenance.",
   "/contact",
 );

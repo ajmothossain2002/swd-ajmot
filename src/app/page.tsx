@@ -12,7 +12,7 @@ import {
 import { HomeHero } from "@/components/home/home-hero";
 
 export const metadata = createPageMetadata(
-  "Full-Stack Developer Building Business-Critical Applications",
+  "Ajmot Hossain | Full-Stack Developer for Business Applications",
   "Ajmot Hossain builds business systems, interactive web applications, frontend experiences, backend services, and workflow-focused software.",
   "/",
 );

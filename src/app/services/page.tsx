@@ -7,7 +7,7 @@ import { developmentProcess, serviceFaqs, serviceGroups } from "@/content/site";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata(
-  "Web development services",
+  "Web Development Services | Ajmot Hossain",
   "Business websites, e-commerce experiences, custom applications, backend APIs, integrations, and maintenance.",
   "/services",
 );

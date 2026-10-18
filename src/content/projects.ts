@@ -20,6 +20,7 @@ export type ProjectCaseStudy = {
   summary: string;
   category: string;
   status: string;
+  visibility: "public" | "private";
   role?: string;
   problem?: string;
   businessContext?: string;
@@ -45,6 +46,7 @@ export const projects: ProjectCaseStudy[] = [
       "An internally used business system spanning HRMS, sales, accounting, invoicing, inventory, and CRM.",
     category: "Business systems · Internal ERP",
     status: "Used internally",
+    visibility: "public",
     role: "End-to-end development",
     problem:
       "The system was built to support work across HRMS, sales, accounting, invoicing, inventory, and CRM, alongside bulk import/export and utility tools.",
@@ -87,6 +89,7 @@ export const projects: ProjectCaseStudy[] = [
     summary: "An e-commerce application focused on GPU products.",
     category: "E-commerce",
     status: "Deployment status not confirmed",
+    visibility: "public",
     technologies: [],
     evidence: [
       "The project is described as an e-commerce application. Build scope, role, technology, and public availability have not been confirmed.",
@@ -98,6 +101,7 @@ export const projects: ProjectCaseStudy[] = [
     summary: "A business website project for The Villagers Cafe.",
     category: "Business website",
     status: "Deployment status not confirmed",
+    visibility: "public",
     technologies: [],
     evidence: [
       "The project is described as a business website. Specific functionality, publication permission, and live URL have not been confirmed.",
@@ -110,6 +114,7 @@ export const projects: ProjectCaseStudy[] = [
       "A project designed around accounting needs for Kolkata puja clubs and other local businesses.",
     category: "Community accounting · ERP",
     status: "Built as a project; deployment and adoption unconfirmed",
+    visibility: "public",
     role: "System design and development",
     problem:
       "The project is intended to organize accounting areas relevant to community events, including chanda collections, donations, and subscriptions.",
@@ -133,6 +138,7 @@ export const projects: ProjectCaseStudy[] = [
     summary: "A barber booking and backend project.",
     category: "Booking application",
     status: "Project status not confirmed",
+    visibility: "public",
     technologies: [],
     evidence: [
       "The project is described as a barber booking/backend project. Specific workflows, role, technology, and public availability have not been confirmed.",
@@ -144,6 +150,7 @@ export const projects: ProjectCaseStudy[] = [
     summary: "An e-commerce application; further project details are kept private.",
     category: "E-commerce · Private project",
     status: "Private project",
+    visibility: "private",
     technologies: [],
     evidence: [
       "Only a high-level project description is approved for this portfolio. No private code, repository, customer information, or deployment details are included.",
@@ -155,6 +162,7 @@ export const projects: ProjectCaseStudy[] = [
     summary: "A car or vehicle rental project.",
     category: "Rental application",
     status: "Project status not confirmed",
+    visibility: "public",
     technologies: [],
     evidence: [
       "The project is described as a car or vehicle rental application. Specific workflows, role, technology, and public availability have not been confirmed.",
@@ -173,14 +181,15 @@ const projectPriority = [
 ];
 
 export const selectedProjects = projectPriority.flatMap((slug) =>
-  projects.filter((project) => project.slug === slug),
+  projects.filter((project) => project.slug === slug && project.visibility === "public"),
 );
+export const publicProjects = projects.filter((project) => project.visibility === "public");
 export const homepageProjects = selectedProjects.filter((project) =>
   project.featured || ["gpu-store", "event-community-accounting-erp", "the-villagers-cafe"].includes(project.slug),
 );
 
 export function findProjectBySlug(slug: string) {
-  return projects.find((project) => project.slug === slug);
+  return publicProjects.find((project) => project.slug === slug);
 }
 
 export function getApprovedExternalLinks(project: ProjectCaseStudy) {

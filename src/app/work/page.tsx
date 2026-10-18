@@ -2,7 +2,7 @@ import { createPageMetadata } from "@/lib/seo";
 import { WorkGrid } from "@/components/pages/work-grid";
 
 export const metadata = createPageMetadata(
-  "Selected work",
+  "Web Development Projects and Case Studies | Ajmot Hossain",
   "Browse public web development projects and case studies by Ajmot Hossain.",
   "/work",
 );

@@ -1,15 +1,23 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PageContainer } from "@/components/ui/page-container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tag } from "@/components/ui/tag";
 import { getBlogPosts } from "@/lib/blog.mjs";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata = createPageMetadata(
-  "Blog",
-  "Published notes on practical web development and building for business.",
-  "/blog",
-);
+export function generateMetadata(): Metadata {
+  const posts = getBlogPosts();
+  const metadata = createPageMetadata(
+    posts.length ? "Web Development Blog" : "Blog",
+    posts.length
+      ? "Published articles on web development and software projects by Ajmot Hossain."
+      : "No articles are approved for publication yet. New writing will appear here when it is ready to share.",
+    "/blog",
+  );
+
+  return posts.length ? metadata : { ...metadata, robots: { index: false, follow: true } };
+}
 
 export default function BlogPage() {
   const posts = getBlogPosts();
