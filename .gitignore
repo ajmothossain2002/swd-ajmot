@@ -15,8 +15,8 @@
 /AGENTS.md
 /docs/
 
-# deployment
-/vercel
+# Vercel local project metadata
+/.vercel/
 
 # tooling and OS files
 *.tsbuildinfo
