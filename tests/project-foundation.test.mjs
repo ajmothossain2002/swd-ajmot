@@ -95,7 +95,7 @@ test("service, work, pricing, about, and case-study routes exist", () => {
   }
 
   const projectRoute = fs.readFileSync(path.join(root, "src/app/work/[slug]/page.tsx"), "utf8");
-  assert.match(projectRoute, /findProjectBySlug\(slug\)/);
+  assert.match(projectRoute, /getPublicProject\(slug\)/);
   assert.match(projectRoute, /if \(!project\) notFound\(\)/);
 });
 
@@ -111,7 +111,7 @@ test("pricing options are centralized and quote-only; project links require appr
   assert.doesNotMatch(pricingContent, /[$£€]|\bUSD\b/);
   assert.match(projectContent, /approved: true/);
   assert.match(projectContent, /url\.protocol === "https:"/);
-  assert.match(projectContent, /getApprovedProjectImage/);
+  assert.match(fs.readFileSync(path.join(root, "src/lib/project-content.ts"), "utf8"), /getApprovedProjectImage/);
   assert.match(caseStudy, /getApprovedExternalLinks\(project\)/);
 });
 

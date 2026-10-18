@@ -63,6 +63,11 @@ body {
   min-height: 100vh;
 }
 
+body:has(.admin-area) > header,
+body:has(.admin-area) > footer {
+  display: none;
+}
+
 button,
 input,
 select,

@@ -3,11 +3,13 @@ import type { Metadata } from "next";
 import { PageContainer } from "@/components/ui/page-container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tag } from "@/components/ui/tag";
-import { getBlogPosts } from "@/lib/blog.mjs";
+import { getPublicBlogPosts } from "@/lib/public-content";
 import { createPageMetadata } from "@/lib/seo";
 
-export function generateMetadata(): Metadata {
-  const posts = getBlogPosts();
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const posts = await getPublicBlogPosts();
   const metadata = createPageMetadata(
     posts.length ? "Web Development Blog" : "Blog",
     posts.length
@@ -19,8 +21,8 @@ export function generateMetadata(): Metadata {
   return posts.length ? metadata : { ...metadata, robots: { index: false, follow: true } };
 }
 
-export default function BlogPage() {
-  const posts = getBlogPosts();
+export default async function BlogPage() {
+  const posts = await getPublicBlogPosts();
 
   return (
     <main id="main-content">

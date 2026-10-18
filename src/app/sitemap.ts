@@ -1,19 +1,20 @@
 import type { MetadataRoute } from "next";
-import { publicProjects } from "@/content/projects";
-import { getBlogPosts } from "@/lib/blog.mjs";
+import { getPublicSitemapContent } from "@/lib/public-content";
 import { getPublicSiteUrl } from "@/lib/seo";
 
 const staticRoutes = ["/", "/services", "/work", "/pricing", "/about", "/contact", "/privacy"];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = getPublicSiteUrl();
   if (!origin) return [];
 
-  const posts = getBlogPosts();
+  const { projects, posts } = await getPublicSitemapContent();
   const routes = [
     ...staticRoutes,
     ...(posts.length ? ["/blog"] : []),
-    ...publicProjects.map(({ slug }) => `/work/${slug}`),
+    ...projects.map(({ slug }) => `/work/${slug}`),
     ...posts.map(({ slug }) => `/blog/${slug}`),
   ];
 

@@ -1,31 +1,29 @@
 import Image from "next/image";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { PageContainer } from "@/components/ui/page-container";
 import { Tag } from "@/components/ui/tag";
 import { StructuredData } from "@/components/seo/structured-data";
-import { getBlogPostBySlug, getBlogPosts } from "@/lib/blog.mjs";
+import { getPublicBlogPost } from "@/lib/public-content";
 import { createPageMetadata, getCanonicalUrl } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
 export const dynamicParams = true;
-
-export function generateStaticParams() {
-  return getBlogPosts().map(({ slug }) => ({ slug }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getPublicBlogPost(slug);
   if (!post) return { title: "Article not found | Ajmot Hossain", robots: { index: false, follow: false } };
+  const canonicalSlug = post.redirectTo ?? post.slug;
   return {
-    ...createPageMetadata(post.title, post.description, `/blog/${post.slug}`),
+    ...createPageMetadata(post.title, post.description, `/blog/${canonicalSlug}`),
     openGraph: {
       type: "article",
       siteName: "Ajmot Hossain",
       title: post.title,
       description: post.description,
       publishedTime: `${post.publishedAt}T00:00:00.000Z`,
-      ...(getCanonicalUrl(`/blog/${post.slug}`) ? { url: getCanonicalUrl(`/blog/${post.slug}`) } : {}),
+      ...(getCanonicalUrl(`/blog/${canonicalSlug}`) ? { url: getCanonicalUrl(`/blog/${canonicalSlug}`) } : {}),
       images: [post.coverImage?.src ?? getCanonicalUrl("/opengraph-image")].filter((url): url is string => Boolean(url)),
     },
     twitter: {
@@ -39,8 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BlogArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getPublicBlogPost(slug);
   if (!post) notFound();
+  if (post.redirectTo) permanentRedirect(`/blog/${post.redirectTo}`);
   const articleUrl = getCanonicalUrl(`/blog/${post.slug}`);
   const structuredData = articleUrl
     ? {
@@ -53,7 +52,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
         mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
         author: { "@type": "Person", name: "Ajmot Hossain", url: getCanonicalUrl("/about") },
         publisher: { "@type": "Person", name: "Ajmot Hossain", url: getCanonicalUrl("/about") },
-        ...(post.coverImage ? { image: getCanonicalUrl(post.coverImage.src) } : {}),
+        ...(post.coverImage ? { image: post.coverImage.src } : {}),
       }
     : undefined;
 

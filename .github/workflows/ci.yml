@@ -43,3 +43,6 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Client construction needs a URL at build time; no database is contacted.
+          DATABASE_URL: postgresql://portfolio:portfolio@127.0.0.1:5432/portfolio?schema=public

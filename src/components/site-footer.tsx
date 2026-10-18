@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
-import { selectedProjects } from "@/content/projects";
 import { siteNavigation, serviceGroups } from "@/content/site";
-
-const footerProjects = selectedProjects.filter((project) => project.slug !== "private-store");
 
 export function SiteFooter() {
   return (
@@ -39,9 +36,7 @@ export function SiteFooter() {
           <nav aria-label="Selected case studies">
             <h2 className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted">Selected work</h2>
             <ul className="mt-4 space-y-3">
-              {footerProjects.slice(0, 4).map((project) => (
-                <li key={project.slug}><Link className="text-sm text-ink transition-colors hover:text-accent" href={`/work/${project.slug}`}>{project.title}</Link></li>
-              ))}
+              <li><Link className="text-sm text-ink transition-colors hover:text-accent" href="/work">Browse public projects</Link></li>
             </ul>
           </nav>
         </div>

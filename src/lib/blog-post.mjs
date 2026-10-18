@@ -1,51 +1,8 @@
 import path from "node:path";
 import matter from "gray-matter";
-import { marked, Renderer } from "marked";
+import { renderSafeMarkdown } from "./safe-markdown.mjs";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const renderer = new Renderer();
-renderer.html = () => "";
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character]);
-}
-
-function safeMarkdownHref(value) {
-  if (typeof value !== "string" || /[\u0000-\u001f\\]/.test(value)) return undefined;
-  const href = value.trim();
-  if (!href || href.startsWith("//")) return undefined;
-  if (href.startsWith("/") || href.startsWith("#") || href.startsWith("./") || href.startsWith("../")) return href;
-  try {
-    const url = new URL(href);
-    if (!["https:", "http:", "mailto:"].includes(url.protocol) || url.username || url.password) return undefined;
-    return href;
-  } catch {
-    return undefined;
-  }
-}
-
-renderer.link = function (token) {
-  const content = this.parser.parseInline(token.tokens);
-  const href = safeMarkdownHref(token.href);
-  if (!href) return content;
-  const title = token.title ? ` title="${escapeHtml(token.title)}"` : "";
-  return `<a href="${escapeHtml(href)}"${title}>${content}</a>`;
-};
-
-renderer.image = function (token) {
-  const src = typeof token.href === "string" && token.href.startsWith("/") && !token.href.startsWith("//") && !token.href.includes("\\")
-    ? token.href
-    : undefined;
-  if (!src) return escapeHtml(token.text);
-  const title = token.title ? ` title="${escapeHtml(token.title)}"` : "";
-  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(token.text)}"${title}>`;
-};
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -90,7 +47,7 @@ export function parseBlogPost(source, filePath) {
     published: metadata.published,
     ...(coverImage ? { coverImage } : {}),
     content: parsed.content.trim(),
-    contentHtml: marked.parse(parsed.content, { async: false, gfm: true, renderer }),
+    contentHtml: renderSafeMarkdown(parsed.content),
   };
 }
 

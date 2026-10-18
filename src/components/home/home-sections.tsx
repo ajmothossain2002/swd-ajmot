@@ -13,9 +13,11 @@ import {
   services,
   technicalCapabilities,
 } from "@/content/site";
-import { getApprovedProjectImage, homepageProjects } from "@/content/projects";
+import { getApprovedProjectImage } from "@/lib/project-content";
+import { getPublicProjects } from "@/lib/public-content";
 
-export function SelectedWorkSection() {
+export async function SelectedWorkSection() {
+  const homepageProjects = (await getPublicProjects({ featured: true })).slice(0, 4);
   return (
     <section aria-labelledby="work-title" className="border-y border-line py-section" id="work">
       <PageContainer>
@@ -37,7 +39,7 @@ export function SelectedWorkSection() {
                 image={getApprovedProjectImage(project.image)}
                 key={project.slug}
                 status={project.status}
-                tags={project.technologies}
+                tags={project.tags?.length ? project.tags : project.technologies}
                 title={project.title}
               />
             ))}

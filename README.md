@@ -4,7 +4,7 @@ Portfolio and web development business site built with Next.js App Router, TypeS
 
 ## Prerequisites
 
-- Node.js 20.9 or newer
+- Node.js 20.19+, 22.12+, or 24+
 - npm 10 or newer
 
 ## Install and run
@@ -27,17 +27,82 @@ npm run build       # Create a production build
 npm run start       # Serve the production build
 ```
 
+## PostgreSQL and Prisma
+
+The schema is in `prisma/schema.prisma`; migrations are kept in `prisma/migrations/`.
+Prisma Client is generated into `src/generated/prisma/` during dependency installation.
+Generated files are not committed.
+
+For local PostgreSQL, copy `.env.example` to `.env`, set `POSTGRES_DB`, `POSTGRES_USER`,
+and a local-only `POSTGRES_PASSWORD`, then set both `DATABASE_URL` and `DIRECT_URL` to
+the same local database using the `postgresql://USER:PASSWORD@localhost:5432/DB?schema=public`
+format. Do not use production credentials in this file. Start and stop the database with:
+
+```bash
+docker compose up -d postgres
+docker compose ps
+npm run db:validate
+npm run db:migrate:dev -- --name init
+docker compose down
+```
+
+The named `postgres_data` volume retains local database files when the service stops.
+Do not use `docker compose down -v` unless you intentionally want to delete that local data.
+For Neon, set `DATABASE_URL` to the pooled connection string for application traffic and
+`DIRECT_URL` to the direct connection string for Prisma CLI migrations. Never commit either
+URL. Use `npm run db:migrate:deploy` only in an explicitly approved deployment workflow;
+this repository phase does not apply migrations to production.
+
+The database schema has no seeded admin account. On a Vercel Production build, the configured build command applies pending Prisma migrations and atomically imports the initial approved projects and draft case studies once. A database marker prevents later deployments from importing over CMS edits. Preview deployments skip database migrations and content initialization. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
+
+## Admin authentication
+
+The private sign-in page is `/admin/login`; registration is disabled. Configure
+`BETTER_AUTH_SECRET` with a cryptographically random secret of at least 32 bytes and
+`BETTER_AUTH_URL` with the exact application origin. Set `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` only in the local environment for the initial provisioning command.
+The password must be 15–128 characters. Run `npm run admin:provision` once after the
+auth migration is applied. Re-running it for the same administrator does not change
+the existing password; another administrator account is rejected by both the command
+and a database uniqueness constraint.
+
+Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for production sign-in
+throttling. Production authentication fails closed if these are missing or unavailable.
+Local development uses a per-process in-memory limiter. Passwords are hashed with
+Argon2id. No email recovery provider or in-app password change form is configured. To
+rotate the password as the database operator, set `ADMIN_EMAIL` and a new
+`ADMIN_PASSWORD` privately and explicitly run `npm run admin:password`. It updates the
+existing credential and revokes active sessions; it never runs during provisioning or
+deployment. If locked out, the same operator-run procedure is the recovery path.
+
+For a local database, apply the additive migration after checking the active
+`DIRECT_URL`/`DATABASE_URL` points only to the intended local database:
+
+```bash
+npm run db:validate
+npm run db:migrate:deploy
+npm run db:generate
+```
+
+This migration adds authentication fields and session/account tables. It retains the
+legacy password-hash column and all existing records. Do not apply it to a remote
+database without an explicitly approved deployment process.
+
 ## Project structure
 
-- `src/app/` — App Router pages and the contact Route Handler
-- `src/components/` — Site shell, page sections, contact form, and shared UI
-- `src/content/` — Services, project records, and Markdown blog files
-- `src/lib/` — Blog content loader and contact validation/delivery logic
+- `src/app/` — App Router pages, contact and auth Route Handlers, and protected admin routes
+- `src/components/` — Site shell, page sections, contact form, admin sign-in controls, and shared UI
+- `src/content/` — Verified static copy and legacy Markdown tooling; public project and blog records are served from the CMS
+- `src/lib/` — Blog loader, contact validation/delivery, Prisma client, and server-only auth policies
+- `prisma/` — PostgreSQL schema and committed migrations
+- `src/lib/prisma.ts` — Server-only Prisma Client singleton
 - `tests/` — Node.js tests and unpublished blog fixtures
 
 ## Deployment preparation
 
-The project is a Next.js app suitable for Vercel. No local Vercel project link is present and the intended remote project has not been verified; no deployment has been performed. Select the intended existing Vercel project and import this repository with the repository root as the project root. Keep the detected Next.js framework and build command (`npm run build`), and select Node.js 24 to match CI. Vercel detects npm from `package-lock.json`; its default install command is `npm install`. To require the same strict lockfile install as CI, set the project's install command to `npm ci`. Do not create a new project or change production settings until the intended Vercel project is confirmed.
+The project is a Next.js app suitable for Vercel. `vercel.json` sets the Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. No local Vercel project link is present and the intended remote project has not been verified; no deployment has been performed. Select the intended existing Vercel project and import this repository with the repository root as the project root. Keep the detected Next.js framework and select Node.js 24 to match CI. Vercel detects npm from `package-lock.json`; its default install command is `npm install`. To require the same strict lockfile install as CI, set the project's install command to `npm ci`. Do not create a new project or change production settings until the intended Vercel project is confirmed.
+
+Configure Production `DATABASE_URL` for runtime queries and `DIRECT_URL` for Prisma migrations, both pointing to the same PostgreSQL database. Back up the selected production database and review all pending migrations before the first deployment. Do not set these production database values for Preview deployments; use an isolated Preview database if Preview content must be tested. The Production build fails before deployment if the database variables, migrations, or initial import are unavailable. The build workflow never runs migrations or imports on HTTP requests or serverless startup.
 
 The current production URL is `https://swd-ajmot.vercel.app`; canonical and sitemap URLs use it by default. Set `SITE_URL` only when an approved replacement domain has been configured. In the selected Vercel project's environment settings, configure the server-only variables below for Production (and Preview only when its behavior is understood). Add values through Vercel's secret settings, never to this repository or CI logs:
 

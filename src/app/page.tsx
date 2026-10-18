@@ -17,6 +17,8 @@ export const metadata = createPageMetadata(
   "/",
 );
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <main id="main-content">

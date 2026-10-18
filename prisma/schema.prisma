@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model AdminUser {
+  id            String    @id @default(cuid())
+  name          String    @default("Admin")
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  // A fixed unique value enforces the single-admin boundary at the database layer.
+  singletonKey  Int       @unique @default(1)
+  // Retained during the authentication migration so existing data is never discarded.
+  passwordHash  String?
+  sessions      Session[]
+  accounts      Account[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  expiresAt DateTime
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Project {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  title        String
+  summary      String
+  category     String
+  status       String
+  visibility   ProjectVisibility @default(PRIVATE)
+  featured     Boolean           @default(false)
+  sortOrder    Int               @default(0)
+  coverImageId String?           @unique
+  coverImage   MediaAsset?       @relation("ProjectCover", fields: [coverImageId], references: [id], onDelete: Restrict)
+  caseStudy    CaseStudy?
+  tags         Tag[]
+  slugRedirects ProjectSlugRedirect[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([visibility, sortOrder])
+}
+
+model CaseStudy {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  projectId        String            @unique
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  screenshots      CaseStudyImage[]
+  status           PublicationStatus @default(DRAFT)
+  publishedAt      DateTime?
+  problem          String?
+  businessContext  String?
+  role             String?
+  approach         String?
+  capabilities     String[]          @default([])
+  capabilityLabel  String?
+  challenges       Json?
+  architectureNote String?
+  technologies     String[]          @default([])
+  evidence         String[]          @default([])
+  publicLinks      Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model ProjectSlugRedirect {
+  oldSlug   String   @id
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model BlogPost {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  title        String
+  description  String
+  markdown     String
+  category     String
+  status       PublicationStatus @default(DRAFT)
+  publishedAt  DateTime?
+  coverImageId String?           @unique
+  coverImage   MediaAsset?       @relation("BlogPostCover", fields: [coverImageId], references: [id], onDelete: Restrict)
+  tags         Tag[]
+  slugRedirects BlogPostSlugRedirect[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model BlogPostSlugRedirect {
+  oldSlug    String   @id
+  blogPostId String
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([blogPostId])
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  projects  Project[]
+  blogPosts BlogPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model MediaAsset {
+  id              String           @id @default(cuid())
+  provider        String
+  providerId      String           @unique
+  secureUrl       String
+  altText         String
+  width           Int?
+  height          Int?
+  format          String?
+  createdAt       DateTime         @default(now())
+  projectCover    Project?         @relation("ProjectCover")
+  blogCover       BlogPost?        @relation("BlogPostCover")
+  caseStudyImages CaseStudyImage[]
+}
+
+// Written atomically with the initial static content import. Never delete this
+// record to replay source files over content later managed by the CMS.
+model CmsContentInitialization {
+  key                  String   @id
+  sourceHash           String
+  expectedProjects     Int
+  expectedCaseStudies  Int
+  expectedBlogPosts    Int
+  projectsCreated      Int
+  projectsSkipped      Int
+  caseStudiesCreated   Int
+  caseStudiesSkipped   Int
+  blogPostsCreated     Int
+  blogPostsSkipped     Int
+  completedAt          DateTime @default(now())
+}
+
+model CaseStudyImage {
+  caseStudyId  String
+  mediaAssetId String
+  sortOrder    Int        @default(0)
+  caseStudy    CaseStudy  @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@id([caseStudyId, mediaAssetId])
+  @@index([mediaAssetId])
+  @@index([caseStudyId, sortOrder])
+}

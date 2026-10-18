@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/ui/project-card";
 import { PageContainer } from "@/components/ui/page-container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { getApprovedProjectImage, selectedProjects } from "@/content/projects";
+import { getApprovedProjectImage } from "@/lib/project-content";
+import { getPublicProjects } from "@/lib/public-content";
 
 type WorkGridProps = {
   selectedCategory?: string;
 };
 
-export function WorkGrid({ selectedCategory = "" }: WorkGridProps) {
+export async function WorkGrid({ selectedCategory = "" }: WorkGridProps) {
+  const selectedProjects = await getPublicProjects();
   const categories = [...new Set(selectedProjects.map((project) => project.category))];
   const activeCategory = categories.includes(selectedCategory) ? selectedCategory : "";
   const visibleProjects = activeCategory
@@ -50,7 +52,7 @@ export function WorkGrid({ selectedCategory = "" }: WorkGridProps) {
                 image={getApprovedProjectImage(project.image)}
                 key={project.slug}
                 status={project.status}
-                tags={project.technologies}
+                tags={project.tags?.length ? project.tags : project.technologies}
                 title={project.title}
               />
             ))}

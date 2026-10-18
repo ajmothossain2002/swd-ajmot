@@ -2,7 +2,8 @@ import Image from "next/image";
 import { ContactCta } from "@/components/ui/contact-cta";
 import { PageContainer } from "@/components/ui/page-container";
 import { Tag } from "@/components/ui/tag";
-import { getApprovedExternalLinks, getApprovedProjectImage, type ProjectCaseStudy } from "@/content/projects";
+import type { ProjectCaseStudy } from "@/content/projects";
+import { getApprovedExternalLinks, getApprovedProjectImage } from "@/lib/project-content";
 
 export function CaseStudy({ project }: { project: ProjectCaseStudy }) {
   const image = getApprovedProjectImage(project.image);

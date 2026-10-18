@@ -30,6 +30,7 @@ export type ProjectCaseStudy = {
   challenges?: ProjectChallenge[];
   architectureNote?: string;
   technologies: string[];
+  tags?: string[];
   evidence: string[];
   image?: ProjectImage;
   publicLinks?: ApprovedProjectLink[];

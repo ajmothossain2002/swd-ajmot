@@ -55,21 +55,24 @@ test("robots and sitemap use the canonical origin and omit private projects and 
   const sitemap = read("src/app/sitemap.ts");
   const robots = read("src/app/robots.ts");
   const projects = read("src/content/projects.ts");
-  const blog = read("src/lib/blog.mjs");
+  const publicContent = read("src/lib/public-content-data.mjs");
 
   assert.match(layout, /metadataBase: getPublicSiteUrl\(\)/);
   assert.doesNotMatch(layout, /alternates:\s*\{\s*canonical/);
   assert.match(robots, /allow: "\/"/);
   assert.match(robots, /disallow: "\/api\/"/);
   assert.match(robots, /new URL\("\/sitemap\.xml", origin\)/);
-  assert.match(sitemap, /publicProjects\.map/);
-  assert.match(sitemap, /const posts = getBlogPosts\(\)/);
+  assert.match(sitemap, /getPublicSitemapContent\(\)/);
+  assert.match(sitemap, /projects\.map\(\(\{ slug \}\) => `\/work\/\$\{slug\}`\)/);
   assert.match(sitemap, /\.\.\.posts\.map\(\(\{ slug \}\) => `\/blog\/\$\{slug\}`\)/);
   assert.match(sitemap, /posts\.length \? \["\/blog"\] : \[\]/);
+  assert.match(publicContent, /visibility: "PUBLIC"/);
+  assert.match(publicContent, /status: "PUBLISHED", publishedAt: \{ not: null \}/);
+  assert.match(publicContent, /caseStudy:\s*\{\s*where: publishedCaseStudyWhere/);
   assert.match(projects, /visibility: "private"/);
   assert.match(projects, /projects\.filter\(\(project\) => project\.visibility === "public"\)/);
-  assert.match(projects, /project\.visibility === "public"/);
-  assert.match(blog, /return getPublishedBlogPosts\(posts\)/);
+  assert.doesNotMatch(sitemap, /content\/projects|lib\/blog\.mjs/);
+  assert.doesNotMatch(read("src/app/blog/page.tsx"), /lib\/blog\.mjs/);
   assert.match(read("src/app/blog/[slug]/page.tsx"), /if \(!post\) notFound\(\)/);
 });
 

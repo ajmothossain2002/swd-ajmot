@@ -69,7 +69,7 @@ export function ProjectCard({
       </Link>
       {status ? <p className="mt-3 text-xs leading-5 text-muted">{status}</p> : null}
       {tags.length > 0 ? (
-        <ul aria-label="Project technologies" className="mt-4 flex flex-wrap gap-2">
+          <ul aria-label="Project tags" className="mt-4 flex flex-wrap gap-2">
           {tags.map((tag) => (
             <li key={tag}>
               <Tag>{tag}</Tag>
