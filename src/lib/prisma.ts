@@ -1,39 +1,53 @@
-import { PrismaClient } from "@prisma/client";
 
-let _prisma: PrismaClient | null = null;
+import "server-only";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/generated/prisma/client";
 
-function ensurePrisma(): PrismaClient {
-  if (_prisma) return _prisma;
+const globalForPrisma = globalThis as typeof globalThis & {
+  prisma?: PrismaClient;
+};
 
-  if (!process.env.DATABASE_URL) {
+function createPrismaClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
     throw new Error("DATABASE_URL must be configured before using the database.");
   }
 
-  _prisma = new PrismaClient();
-  return _prisma;
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
 }
 
-const prismaProxy = new Proxy(
-  {},
-  {
-    get(_target, prop) {
-      const client = ensurePrisma();
-      // @ts-expect-error dynamic proxy
-      return (client as any)[prop];
-    },
-    has(_target, prop) {
-      const client = ensurePrisma();
-      return prop in (client as any);
-    },
-  },
-) as unknown as PrismaClient;
+function ensurePrisma(): PrismaClient {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
 
-export default prismaProxy;
+  const client = createPrismaClient();
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+
+  return client;
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = ensurePrisma();
+    const value = Reflect.get(client, prop, client);
+
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+}) as PrismaClient;
 
 export function getPrisma(): PrismaClient | undefined {
-  try {
-    return ensurePrisma();
-  } catch {
+  if (!process.env.DATABASE_URL) {
     return undefined;
   }
+
+  return ensurePrisma();
 }
+
+export default prisma;
