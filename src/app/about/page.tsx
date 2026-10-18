@@ -6,7 +6,7 @@ import { additionalExperience, education, experience } from "@/content/profile";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata(
-  "About Ajmot Hossain",
+  "About Ajmot Hossain | Full-Stack Developer",
   "Ajmot Hossain is a full-stack developer working across business systems, frontend and backend development, and deployment.",
   "/about",
 );

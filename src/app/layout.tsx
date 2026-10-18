@@ -3,7 +3,8 @@ import localFont from "next/font/local";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { defaultSiteDescription, getCanonicalUrl, getPublicSiteUrl } from "@/lib/seo";
+import { StructuredData } from "@/components/seo/structured-data";
+import { defaultSiteDescription, getPublicSiteUrl, getStructuredData } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -15,18 +16,19 @@ const geistSans = localFont({
 
 export const metadata: Metadata = {
   metadataBase: getPublicSiteUrl(),
+  verification: {
+    google: "ZuupviwSl11CeBH50DUFhcaDMR7H2GiJdpadTYWaeyk",
+  },
   title: "Ajmot Hossain — Full-Stack Developer",
   description: defaultSiteDescription,
-  alternates: getCanonicalUrl("/") ? { canonical: getCanonicalUrl("/") } : undefined,
   openGraph: {
     type: "website",
     siteName: "Ajmot Hossain",
     title: "Ajmot Hossain — Full-Stack Developer",
     description: defaultSiteDescription,
-    ...(getCanonicalUrl("/") ? { url: getCanonicalUrl("/") } : {}),
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Ajmot Hossain — Full-Stack Developer",
     description: defaultSiteDescription,
   },
@@ -40,9 +42,12 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const structuredData = getStructuredData();
+
   return (
     <html className={geistSans.variable} lang="en">
       <body className="min-h-screen bg-paper text-ink antialiased">
+        {structuredData ? <StructuredData data={structuredData} /> : null}
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>

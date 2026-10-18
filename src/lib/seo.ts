@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 
 const SITE_NAME = "Ajmot Hossain";
+// This is the current production host supplied by Ajmot. Change it only after
+// a replacement public domain has been configured and approved.
+const DEFAULT_PUBLIC_SITE_URL = "https://swd-ajmot.vercel.app";
 const DEFAULT_DESCRIPTION =
-  "Web development services for businesses, from websites and frontend experiences to custom applications, APIs, and maintenance.";
+  "Full-stack developer building business websites, custom web applications, backend APIs, and business systems. Explore projects and discuss your requirements.";
 
 export function getPublicSiteUrl(): URL | undefined {
-  const value = process.env.SITE_URL;
-  if (!value) return undefined;
+  const value = process.env.SITE_URL || DEFAULT_PUBLIC_SITE_URL;
 
   try {
     const url = new URL(value);
@@ -26,7 +28,9 @@ export function getCanonicalUrl(pathname: string): string | undefined {
 
 export function createPageMetadata(title: string, description: string, pathname: string): Metadata {
   const canonical = getCanonicalUrl(pathname);
-  const fullTitle = `${title} | ${SITE_NAME}`;
+  const openGraphImage = getCanonicalUrl("/opengraph-image");
+  const twitterImage = getCanonicalUrl("/twitter-image");
+  const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
 
   return {
     title: fullTitle,
@@ -38,13 +42,44 @@ export function createPageMetadata(title: string, description: string, pathname:
       title: fullTitle,
       description,
       ...(canonical ? { url: canonical } : {}),
+      ...(openGraphImage ? { images: [{ url: openGraphImage, alt: "Ajmot Hossain, Full-Stack Developer" }] } : {}),
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: fullTitle,
       description,
+      ...(twitterImage ? { images: [twitterImage] } : {}),
     },
   };
 }
 
 export const defaultSiteDescription = DEFAULT_DESCRIPTION;
+
+export function getStructuredData() {
+  const url = getPublicSiteUrl();
+  if (!url) return undefined;
+
+  const personId = new URL("/about#person", url).toString();
+  const websiteId = new URL("/#website", url).toString();
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": personId,
+        name: SITE_NAME,
+        jobTitle: "Full-Stack Developer",
+        url: new URL("/about", url).toString(),
+      },
+      {
+        "@type": "WebSite",
+        "@id": websiteId,
+        name: SITE_NAME,
+        url: url.toString(),
+        inLanguage: "en",
+        publisher: { "@id": personId },
+      },
+    ],
+  };
+}

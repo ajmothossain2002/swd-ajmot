@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageContainer } from "@/components/ui/page-container";
 import { Tag } from "@/components/ui/tag";
+import { StructuredData } from "@/components/seo/structured-data";
 import { getBlogPostBySlug, getBlogPosts } from "@/lib/blog.mjs";
 import { createPageMetadata, getCanonicalUrl } from "@/lib/seo";
 
@@ -25,7 +26,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: post.description,
       publishedTime: `${post.publishedAt}T00:00:00.000Z`,
       ...(getCanonicalUrl(`/blog/${post.slug}`) ? { url: getCanonicalUrl(`/blog/${post.slug}`) } : {}),
-      ...(post.coverImage ? { images: [post.coverImage.src] } : {}),
+      images: [post.coverImage?.src ?? getCanonicalUrl("/opengraph-image")].filter((url): url is string => Boolean(url)),
+    },
+    twitter: {
+      card: post.coverImage ? "summary_large_image" : "summary",
+      title: `${post.title} | Ajmot Hossain`,
+      description: post.description,
+      images: [post.coverImage?.src ?? getCanonicalUrl("/twitter-image")].filter((url): url is string => Boolean(url)),
     },
   };
 }
@@ -34,10 +41,26 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   const post = getBlogPostBySlug(slug);
   if (!post) notFound();
+  const articleUrl = getCanonicalUrl(`/blog/${post.slug}`);
+  const structuredData = articleUrl
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: post.description,
+        datePublished: post.publishedAt,
+        inLanguage: "en",
+        mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
+        author: { "@type": "Person", name: "Ajmot Hossain", url: getCanonicalUrl("/about") },
+        publisher: { "@type": "Person", name: "Ajmot Hossain", url: getCanonicalUrl("/about") },
+        ...(post.coverImage ? { image: getCanonicalUrl(post.coverImage.src) } : {}),
+      }
+    : undefined;
 
   return (
     <main id="main-content">
       <article className="py-section">
+        {structuredData ? <StructuredData data={structuredData} /> : null}
         <PageContainer>
           <header className="mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{post.category} · <time dateTime={post.publishedAt}>{post.publishedAt}</time></p>
