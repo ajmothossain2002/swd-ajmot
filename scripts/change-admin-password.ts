@@ -1,4 +1,4 @@
-import { prisma } from "../src/lib/prisma.js";
+import { prisma } from "./admin-prisma.js";
 import { hashPassword } from "../src/lib/auth/password.mjs";
 
 async function main() {
