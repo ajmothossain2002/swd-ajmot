@@ -138,11 +138,11 @@ Keep the existing Render web service on branch `dev` with **Auto-Deploy: On Comm
 
 | Setting | Value |
 |---|---|
-| Build Command | `npm ci && npm run render:migrate && npm run build` |
+| Build Command | `npm ci && npm run render:migrate && npm run render:provision-admin && npm run build` |
 | Pre-Deploy Command | Leave blank |
 | Start Command | `npm run start` |
 
-`render:migrate` runs pending Prisma migrations before building the app. It skips Render pull request previews and refuses to run outside a Render web service. It does not import `src/content/projects.ts`; public project and blog queries return empty lists until you add CMS records. Admin provisioning remains an explicit one-time command after the first migration. If migrations cannot reach the internal database URL from Render's build environment, stop the deploy and use a Render plan with Pre-Deploy support or a controlled operator migration; do not weaken database network access to make the build pass.
+`render:migrate` runs pending Prisma migrations before building the app. It skips Render pull request previews and refuses to run outside a Render web service. `render:provision-admin` skips unless both `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set. By default it invokes the existing explicit `admin:provision` CLI to create the initial admin in that service's database. Set `ADMIN_BOOTSTRAP_ACTION=password` only when intentionally rotating an existing admin password through a one-time deploy; this invokes the existing `admin:password` CLI and revokes active sessions. Remove the admin variables from Render after the deploy succeeds. Provisioning never replaces an existing account or password, and the password action fails if the admin does not exist. Do not run either operation at app startup or from a request handler. The migration step does not import `src/content/projects.ts`; public project and blog queries return empty lists until you add CMS records. If migrations cannot reach the internal database URL from Render's build environment, stop the deploy and use a Render plan with Pre-Deploy support or a controlled operator migration; do not weaken database network access to make the build pass.
 
 For the web service's `DATABASE_URL` and `DIRECT_URL`, use the Render Postgres **Internal Database URL** from its Connect page; keep the service and database in the same region. For Render Postgres, the same direct URL serves both app and migration traffic. Do not use local `localhost` URLs, local `POSTGRES_*` settings, or the Neon `DATABASE_URL_UNPOOLED` URL for this Render database. Leave `PORT` to Render.
 
@@ -167,7 +167,7 @@ Set these values in the Render **web service** environment. Do not copy real sec
 | `CLOUDINARY_UPLOAD_PRESET` | Signed preset configured for the app's 8 MB and format limits |
 | `RESEND_API_KEY`, `CONTACT_EMAIL_TO`, `CONTACT_EMAIL_FROM` | Optional contact delivery values; leave blank until verified |
 
-Do not set `POSTGRES_DB`, `POSTGRES_USER`, or `POSTGRES_PASSWORD` on the Render web service; those are for local Docker Compose. Do not set `DATABASE_URL_UNPOOLED` when using Render Postgres. Keep `ADMIN_EMAIL` and `ADMIN_PASSWORD` private and provide them only when explicitly running the admin provisioning command; remove them from the service after provisioning.
+Do not set `POSTGRES_DB`, `POSTGRES_USER`, or `POSTGRES_PASSWORD` on the Render web service; those are for local Docker Compose. Do not set `DATABASE_URL_UNPOOLED` when using Render Postgres. Keep `ADMIN_EMAIL` and `ADMIN_PASSWORD` private. Set both only for a one-time initial provisioning deploy, then remove them after success. For a deliberate password rotation via build, also set `ADMIN_BOOTSTRAP_ACTION=password` and remove all three variables after success. The database stores a password hash, not the plaintext password. The default provisioning action does not reset an existing admin password.
 
 See [Render deploy commands](https://render.com/docs/deploys), [Render Postgres connections](https://render.com/docs/postgresql-creating-connecting), and [Render environment variables](https://render.com/docs/environment-variables).
 
