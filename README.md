@@ -81,7 +81,7 @@ For Neon, set `DATABASE_URL` to the pooled connection string for application tra
 URL. Use `npm run db:migrate:deploy` only in an explicitly approved deployment workflow;
 this repository phase does not apply migrations to production.
 
-The database schema has no seeded admin account. On a Vercel Production build or Render Production pre-deploy, the configured command applies pending Prisma migrations and atomically imports the initial approved projects and draft case studies once. A database marker prevents later deployments from importing over CMS edits. Preview deployments skip database migrations and content initialization. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
+The database schema has no seeded admin account. Vercel Production builds run migrations and atomically import the initial approved projects and draft case studies once. Render Production pre-deploy applies migrations only; add Render content through the protected admin CMS. Preview deployments skip database migrations. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
 
 ## Admin authentication
 
@@ -128,29 +128,50 @@ database without an explicitly approved deployment process.
 
 ## Deployment preparation
 
-The project is a Next.js app that can run as a Node.js service on Vercel or Render. `vercel.json` sets the Vercel Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. Render's web service setup is described below. The repository's local `dev.py` launcher is only for Docker-based local development. The existing Vercel setup remains documented below; no local Vercel project link is present and no Vercel deployment has been performed.
+The project is a Next.js app that can run as a Node.js service on Vercel or Render. `vercel.json` sets the Vercel Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. Render's web service setup is described below. The repository's local `dev.py` launcher is only for Docker-based local development. The existing Vercel setup remains documented below; no local Vercel deployment has been performed.
 
 ### Render web service
 
 Do not run `dev.py` on Render. It is a local launcher for Docker Compose PostgreSQL and `next dev`. Run tests in GitHub Actions CI, and use Render's managed PostgreSQL for the deployed app.
 
-Set the existing Render web service commands to:
+Keep the existing Render web service on branch `dev` with **Auto-Deploy: On Commit**. Since the service plan does not expose Render's paid Pre-Deploy Command, put migrations in the Build Command:
 
 | Setting | Value |
 |---|---|
-| Build Command | `npm ci && npm run build` |
-| Pre-Deploy Command | `npm run render:predeploy` |
+| Build Command | `npm ci && npm run render:migrate && npm run build` |
+| Pre-Deploy Command | Leave blank |
 | Start Command | `npm run start` |
 
-Render's pre-deploy command requires a paid web service. It runs pending Prisma migrations and then the atomic one-time import of approved static content. The initializer's marker makes later imports no-ops, preserving CMS edits. It skips Render pull request previews and refuses to run outside a Render web service.
+`render:migrate` runs pending Prisma migrations before building the app. It skips Render pull request previews and refuses to run outside a Render web service. It does not import `src/content/projects.ts`; public project and blog queries return empty lists until you add CMS records. Admin provisioning remains an explicit one-time command after the first migration. If migrations cannot reach the internal database URL from Render's build environment, stop the deploy and use a Render plan with Pre-Deploy support or a controlled operator migration; do not weaken database network access to make the build pass.
 
-For the web service's `DATABASE_URL` and `DIRECT_URL`, use the Render Postgres **Internal Database URL** from its Connect page; keep the service and database in the same region. For Render Postgres, the same direct URL serves both app and migration traffic. Do not use local `localhost` URLs, local `POSTGRES_*` settings, or the Neon `DATABASE_URL_UNPOOLED` URL for this Render database. Remove `PORT` if manually set so Render can provide it.
+For the web service's `DATABASE_URL` and `DIRECT_URL`, use the Render Postgres **Internal Database URL** from its Connect page; keep the service and database in the same region. For Render Postgres, the same direct URL serves both app and migration traffic. Do not use local `localhost` URLs, local `POSTGRES_*` settings, or the Neon `DATABASE_URL_UNPOOLED` URL for this Render database. Leave `PORT` to Render.
 
-Set `BETTER_AUTH_URL` and `SITE_URL` to `https://swd-ajmot.onrender.com`, if that remains the service's public URL. After the first pre-deploy succeeds, explicitly provision the one admin against this database with `npm run admin:provision`; do not add admin provisioning to deploy or startup commands. Production admin login and contact throttling require valid `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` values. Keep all credentials in Render's environment settings, and rotate any secrets that were exposed in chat before relying on this deployment.
+Set `BETTER_AUTH_URL` and `SITE_URL` to `https://swd-ajmot.onrender.com`, if that remains the service's public URL. The sign-in API returns 503 if `UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_REST_TOKEN` is missing or unavailable; both values are required for production login and contact throttling. After the first pre-deploy succeeds, explicitly provision the one admin against this database with `npm run admin:provision`; do not add admin provisioning to deploy or startup commands. Keep all credentials in Render's environment settings, and rotate any secrets that were exposed in chat before relying on this deployment.
+
+#### Render environment reference
+
+Set these values in the Render **web service** environment. Do not copy real secrets into `.env.example` or commit them.
+
+| Key | Render value |
+|---|---|
+| `DATABASE_URL` | Render Postgres Internal Database URL |
+| `DIRECT_URL` | Same Render Postgres Internal Database URL |
+| `BETTER_AUTH_URL` | `https://swd-ajmot.onrender.com` |
+| `BETTER_AUTH_SECRET` | New private random secret of at least 32 bytes |
+| `SITE_URL` | `https://swd-ajmot.onrender.com` |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash secret token |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `NEXT_PUBLIC_CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret; server-side only |
+| `CLOUDINARY_UPLOAD_PRESET` | Signed preset configured for the app's 8 MB and format limits |
+| `RESEND_API_KEY`, `CONTACT_EMAIL_TO`, `CONTACT_EMAIL_FROM` | Optional contact delivery values; leave blank until verified |
+
+Do not set `POSTGRES_DB`, `POSTGRES_USER`, or `POSTGRES_PASSWORD` on the Render web service; those are for local Docker Compose. Do not set `DATABASE_URL_UNPOOLED` when using Render Postgres. Keep `ADMIN_EMAIL` and `ADMIN_PASSWORD` private and provide them only when explicitly running the admin provisioning command; remove them from the service after provisioning.
 
 See [Render deploy commands](https://render.com/docs/deploys), [Render Postgres connections](https://render.com/docs/postgresql-creating-connecting), and [Render environment variables](https://render.com/docs/environment-variables).
 
-Configure Production `DATABASE_URL` for runtime queries and `DIRECT_URL` for Prisma migrations, both pointing to the same PostgreSQL database. Back up the selected production database and review all pending migrations before the first deployment. Do not set these production database values for Preview deployments; use an isolated Preview database if Preview content must be tested. The Production build fails before deployment if the database variables, migrations, or initial import are unavailable. The build workflow never runs migrations or imports on HTTP requests or serverless startup.
+For Vercel, configure Production `DATABASE_URL` for runtime queries and `DIRECT_URL` for Prisma migrations, both pointing to the same PostgreSQL database. Back up the selected production database and review all pending migrations before the first deployment. Do not set these production database values for Preview deployments; use an isolated Preview database if Preview content must be tested. The configured Vercel production build fails before deployment if the database variables, migrations, or initial import are unavailable. Neither hosting workflow runs initialization on HTTP requests or server startup.
 
 The current production URL is `https://swd-ajmot.vercel.app`; canonical and sitemap URLs use it by default. Set `SITE_URL` only when an approved replacement domain has been configured. In the selected Vercel project's environment settings, configure the server-only variables below for Production (and Preview only when its behavior is understood). Add values through Vercel's secret settings, never to this repository or CI logs:
 

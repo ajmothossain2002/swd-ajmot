@@ -10,7 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:vercel": "tsx scripts/vercel-build.ts",
-    "render:predeploy": "node scripts/render-predeploy.mjs",
+    "render:migrate": "node scripts/render-migrate.mjs",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
