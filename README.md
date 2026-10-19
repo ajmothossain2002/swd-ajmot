@@ -81,7 +81,7 @@ For Neon, set `DATABASE_URL` to the pooled connection string for application tra
 URL. Use `npm run db:migrate:deploy` only in an explicitly approved deployment workflow;
 this repository phase does not apply migrations to production.
 
-The database schema has no seeded admin account. On a Vercel Production build, the configured build command applies pending Prisma migrations and atomically imports the initial approved projects and draft case studies once. A database marker prevents later deployments from importing over CMS edits. Preview deployments skip database migrations and content initialization. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
+The database schema has no seeded admin account. On a Vercel Production build or Render Production pre-deploy, the configured command applies pending Prisma migrations and atomically imports the initial approved projects and draft case studies once. A database marker prevents later deployments from importing over CMS edits. Preview deployments skip database migrations and content initialization. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
 
 ## Admin authentication
 
@@ -128,7 +128,27 @@ database without an explicitly approved deployment process.
 
 ## Deployment preparation
 
-The project is a Next.js app suitable for Vercel. `vercel.json` sets the Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. No local Vercel project link is present and the intended remote project has not been verified; no deployment has been performed. Select the intended existing Vercel project and import this repository with the repository root as the project root. Keep the detected Next.js framework and select Node.js 24 to match CI. Vercel detects npm from `package-lock.json`; its default install command is `npm install`. To require the same strict lockfile install as CI, set the project's install command to `npm ci`. Do not create a new project or change production settings until the intended Vercel project is confirmed.
+The project is a Next.js app that can run as a Node.js service on Vercel or Render. `vercel.json` sets the Vercel Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. Render's web service setup is described below. The repository's local `dev.py` launcher is only for Docker-based local development. The existing Vercel setup remains documented below; no local Vercel project link is present and no Vercel deployment has been performed.
+
+### Render web service
+
+Do not run `dev.py` on Render. It is a local launcher for Docker Compose PostgreSQL and `next dev`. Run tests in GitHub Actions CI, and use Render's managed PostgreSQL for the deployed app.
+
+Set the existing Render web service commands to:
+
+| Setting | Value |
+|---|---|
+| Build Command | `npm ci && npm run build` |
+| Pre-Deploy Command | `npm run render:predeploy` |
+| Start Command | `npm run start` |
+
+Render's pre-deploy command requires a paid web service. It runs pending Prisma migrations and then the atomic one-time import of approved static content. The initializer's marker makes later imports no-ops, preserving CMS edits. It skips Render pull request previews and refuses to run outside a Render web service.
+
+For the web service's `DATABASE_URL` and `DIRECT_URL`, use the Render Postgres **Internal Database URL** from its Connect page; keep the service and database in the same region. For Render Postgres, the same direct URL serves both app and migration traffic. Do not use local `localhost` URLs, local `POSTGRES_*` settings, or the Neon `DATABASE_URL_UNPOOLED` URL for this Render database. Remove `PORT` if manually set so Render can provide it.
+
+Set `BETTER_AUTH_URL` and `SITE_URL` to `https://swd-ajmot.onrender.com`, if that remains the service's public URL. After the first pre-deploy succeeds, explicitly provision the one admin against this database with `npm run admin:provision`; do not add admin provisioning to deploy or startup commands. Production admin login and contact throttling require valid `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` values. Keep all credentials in Render's environment settings, and rotate any secrets that were exposed in chat before relying on this deployment.
+
+See [Render deploy commands](https://render.com/docs/deploys), [Render Postgres connections](https://render.com/docs/postgresql-creating-connecting), and [Render environment variables](https://render.com/docs/environment-variables).
 
 Configure Production `DATABASE_URL` for runtime queries and `DIRECT_URL` for Prisma migrations, both pointing to the same PostgreSQL database. Back up the selected production database and review all pending migrations before the first deployment. Do not set these production database values for Preview deployments; use an isolated Preview database if Preview content must be tested. The Production build fails before deployment if the database variables, migrations, or initial import are unavailable. The build workflow never runs migrations or imports on HTTP requests or serverless startup.
 
