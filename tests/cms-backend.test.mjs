@@ -269,9 +269,11 @@ test("blog posts default to drafts, publish explicitly, and support CRUD", async
 test("case studies default to drafts, require a real project, enforce one per project and block unsafe project deletion", async () => {
   const db = new MemoryCms();
   const project = await createProject(db, goodProject());
-  const study = await createCaseStudy(db, goodCase(project.id, { evidence: ["Owner-supplied scope"] }));
+  const longEvidence = "Owner-supplied scope, with enough context to explain the source. ".repeat(5);
+  const study = await createCaseStudy(db, goodCase(project.id, { evidence: [longEvidence] }));
   assert.equal(study.status, "DRAFT");
   assert.equal(study.project.id, project.id);
+  assert.equal(study.evidence[0], longEvidence.trim());
   await assert.rejects(createCaseStudy(db, goodCase("missing-project", { slug: "missing-case" })), (error) => error.status === 404);
   await assert.rejects(createCaseStudy(db, goodCase(project.id, { slug: "duplicate-case" })), (error) => error.code === "CASE_STUDY_EXISTS");
   await assert.rejects(deleteProject(db, project.id), (error) => error.status === 409 && error.code === "PROJECT_HAS_CASE_STUDY");

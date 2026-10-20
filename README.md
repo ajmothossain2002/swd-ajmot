@@ -1,193 +1,173 @@
-# Ajmot Hossain — Portfolio and Web Development
+# Ajmot Hossain Portfolio CMS
 
-Portfolio and web development business site built with Next.js App Router, TypeScript, React, and Tailwind CSS 4.
+A portfolio and web development site built with Next.js App Router, TypeScript, React, and Tailwind CSS 4. The public site and protected admin CMS are served by the same Next.js application. PostgreSQL stores admin authentication and CMS content; Cloudinary stores CMS images.
 
-## Prerequisites
+## Requirements
 
 - Node.js 20.19+, 22.12+, or 24+
-- npm 10 or newer
-- Python 3.9+ and Docker Desktop with Compose v2 for the one-command local CMS launcher
+- npm 10+
+- For the local PostgreSQL launcher: Python 3.9+ and Docker Desktop with Compose v2
 
-## Install and run
+## Local setup
+
+1. Install dependencies and create a private local environment file:
+
+   ```bash
+   npm ci
+   ```
+
+   On Windows Command Prompt, create `.env` from the safe example if needed:
+
+   ```cmd
+   if not exist .env copy .env.example .env
+   ```
+
+2. Edit `.env` for local development. Set `POSTGRES_DB`, `POSTGRES_USER`, and a local-only `POSTGRES_PASSWORD`. Set both `DATABASE_URL` and `DIRECT_URL` to that same local database, using `localhost:5432`. Do not put production credentials in this file.
+
+3. Start local PostgreSQL and Next.js with the repository launcher:
+
+   ```bash
+   python dev.py
+   ```
+
+   The launcher validates that the database URLs point to local PostgreSQL, starts the Compose database, checks its health and migration status, then runs `next dev`. If migrations are pending, it stops and tells you to review and apply them with `npm run db:migrate:dev`. Press Ctrl+C to stop Next.js. PostgreSQL and its named data volume remain available; run `python dev.py --stop-db` to stop PostgreSQL without deleting its data. Avoid `docker compose down -v` unless you intend to erase the local database.
+
+   You can also start the app without the launcher using `npm run dev`, after providing a reachable PostgreSQL database in your environment.
+
+4. Create the local admin account once, after migrations have been applied. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` privately in `.env`, then run:
+
+   ```bash
+   npm run admin:provision
+   ```
+
+   Use a password between 15 and 128 characters. The command creates the single administrator and hashes the password with Argon2id. It will not add a second administrator or change an existing password. Remove the bootstrap values from `.env` when you are done. Sign in at [http://localhost:3000/admin/login](http://localhost:3000/admin/login).
+
+### Local database commands
 
 ```bash
-npm ci
-npm run dev
+docker compose up -d postgres
+npm run db:validate
+npm run db:migrate:status
+npm run db:migrate:dev -- --name describe_change
+npm run db:generate
+docker compose down
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Use `db:migrate:dev` when developing a schema change locally; it creates a migration. `db:migrate:deploy` applies already-created migrations and is used in deployment. The `postgres_data` volume keeps database files when the service is stopped.
 
-### One-command local CMS startup (Windows)
+## Render deployment
 
-The repository-root Python launcher starts only the PostgreSQL service defined in
-`docker-compose.yml`, waits for its health check, confirms local migrations are current,
-then starts Next.js with its logs in the same terminal:
+The production app runs as a Render Node.js web service connected to Render PostgreSQL. Keep the web service and database in the same region. Configure the service from its Render dashboard; there is no `render.yaml` in this repository.
 
-```cmd
-if not exist .env copy .env.example .env
-python dev.py --check
-python dev.py
+Use these Render service commands:
+
+| Setting | Command |
+| --- | --- |
+| Build | `npm ci && npm run render:migrate && npm run render:provision-admin && npm run build` |
+| Pre-Deploy | Leave blank for this setup |
+| Start | `npm run start` |
+
+`render:migrate` applies pending Prisma migrations during the Render web-service build. It requires `DATABASE_URL` and `DIRECT_URL`, skips Render pull-request previews, and fails outside a Render web service. `render:provision-admin` also runs during the build but does nothing unless both `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set. Neither task runs when the app starts or handles a request.
+
+### Render environment variables
+
+Set environment values in the Render **web service** settings. Keep secrets there and do not commit them.
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Render PostgreSQL Internal Database URL for application queries |
+| `DIRECT_URL` | The same Render Internal Database URL for Prisma migrations |
+| `BETTER_AUTH_URL` | Exact public origin, for example `https://swd-ajmot.onrender.com` |
+| `BETTER_AUTH_SECRET` | Private cryptographically random secret of at least 32 bytes |
+| `SITE_URL` | Public canonical origin, usually the same HTTPS origin as `BETTER_AUTH_URL` |
+| `UPSTASH_REDIS_REST_URL` | Upstash REST endpoint used for distributed production rate limits |
+| `UPSTASH_REDIS_REST_TOKEN` | Private Upstash token |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name used by the browser upload flow |
+| `NEXT_PUBLIC_CLOUDINARY_API_KEY` | Cloudinary API key; public configuration, not the API secret |
+| `CLOUDINARY_API_SECRET` | Private server-side Cloudinary signing and verification secret |
+| `CLOUDINARY_UPLOAD_PRESET` | Cloudinary signed upload preset |
+| `RESEND_API_KEY` | Optional Resend API key for contact email |
+| `CONTACT_EMAIL_TO` | Optional contact email recipient |
+| `CONTACT_EMAIL_FROM` | Optional verified Resend sender |
+
+Do not set local Docker variables (`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`) on the Render web service. Leave `PORT` to Render. The Render database URL must be reachable from the build environment; if migration cannot connect, fix the service/database networking or use a supported controlled migration step. Do not weaken database access controls to bypass a failed build.
+
+### Initial admin and password rotation on Render
+
+For the first admin only, temporarily set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the Render web service environment. Then deploy with the Build Command above. Migrations run first; the provisioning wrapper then creates the admin if the database contains no administrator. After successful provisioning, remove both variables from Render and redeploy so they are no longer part of future builds.
+
+To intentionally rotate the existing admin password, temporarily set `ADMIN_EMAIL`, the new `ADMIN_PASSWORD`, and `ADMIN_BOOTSTRAP_ACTION=password`, then deploy. That operation changes the existing credential and revokes active sessions. Remove all three variables after it succeeds. The default `provision` action never resets an existing password; provisioning a second admin is rejected. For local operations, use `npm run admin:password` with the target email and new password in `.env`.
+
+Review migrations and back up production data before deploying schema changes. Render build migration is a deploy-time operation; the running Next.js app does not migrate the database at startup. The Render migration step does not import content. Use the protected bulk workbook workflow described below to load starter content or manage content in batches.
+
+## Admin authentication and authorization
+
+The admin sign-in page is `/admin/login`. Better Auth handles email/password sign-in, and PostgreSQL stores the administrator, credential account, and sessions. Sign-up is disabled. Passwords are Argon2id hashes; the app never sends password hashes or session data to client code.
+
+Protected admin pages check the session on the server with `requireAdmin()`. Admin API handlers independently check authorization with `requireAdminApi()`. Production requires a valid `BETTER_AUTH_SECRET`, an HTTPS `BETTER_AUTH_URL`, and Upstash credentials for distributed login throttling; authentication fails closed if required configuration or the limiter is unavailable. Local development uses an in-process limiter. There is no email password-recovery flow; an operator rotates a password with the CLI command above, which also revokes active sessions.
+
+## CMS content and media
+
+Projects, case studies, blog posts, tags, publication state, and media references live in PostgreSQL. Public server-rendered pages query published/public content. Admin mutations use protected Route Handlers and revalidate affected public paths. Initial Render setup does not populate content; use the bulk workbook workflow in `/admin` after signing in.
+
+The admin media picker uploads images to Cloudinary using a server-generated signature. Configure a **signed** Cloudinary upload preset with an 8 MB maximum and only `jpg`, `jpeg`, `png`, `webp`, and `avif`. The API secret stays on the server. The app verifies the upload through Cloudinary before recording a `MediaAsset` in PostgreSQL. CMS records refer to persisted media asset IDs, and referenced media cannot be deleted. Removing a media row does not remove the remote Cloudinary object.
+
+### Bulk Excel and JSON import and export
+
+Each protected admin content section has its own bulk import/export panel: **Projects**, **Case studies**, and **Blog posts**. Projects are the overview cards used by the public portfolio; case studies hold the detailed work page; blog posts hold articles. The Admin **Overview** is only a dashboard of counts and recent edits, not a separate content table. Each panel reads and writes only its collection. A combined JSON content pack can be uploaded on any section page; that page processes only its matching collection, so import projects first, case studies second, then blog posts. Each workbook contains one content sheet for its selected section plus an Instructions sheet.
+
+The panels support `.xlsx` workbooks and JSON content packs shaped like this:
+
+```json
+{
+  "packageName": "Ajmot Hossain Portfolio CMS Bulk Content Pack",
+  "packageVersion": "1.0",
+  "collections": {
+    "projects": [],
+    "caseStudies": [],
+    "blogPosts": []
+  },
+  "counts": { "projects": 0, "caseStudies": 0, "blogPosts": 0 }
+}
 ```
 
-Before starting, set the local `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
-`DATABASE_URL`, and `DIRECT_URL` values in `.env`. Both database URLs must point to
-`localhost:5432` and the Compose database name; the launcher rejects remote hosts such as
-Neon and never edits `.env`. It will not install packages automatically; run `npm ci`
-yourself if it reports that dependencies are missing. If migrations are pending, the
-launcher stops and explains how to review and apply them with `npm run db:migrate:dev`.
+JSON collection records use the content fields in the supplied `cms-bulk-import.json` format: project fields such as `status`, `coverImageId`, and `tags`; case-study fields such as `projectSlug`, `status`, `capabilities`, and `mediaAssetIds`; and blog fields such as `markdown`, `status`, and `tags`. `packageName`, `packageVersion`, `counts`, and `importNotes` are informational. Each collection must be an array, and each record is validated against the CMS schema.
 
-Press **Ctrl+C** to stop Next.js; PostgreSQL stays running and its named volume is kept.
-To stop PostgreSQL explicitly without deleting its data, run `python dev.py --stop-db`.
-Never use `docker compose down -v` unless you intentionally want to delete local database
-data. Production remains separate: Vercel uses the configured deployment build, while
-this launcher always forces the local URLs from `.env` into its child processes.
+- **Export workbook** and **Export JSON** download the current collection's records, including their IDs. Keep IDs to update those records.
+- **Download template** provides an empty workbook for preparing records in that collection. Leave `id` blank to create a record; PostgreSQL/Prisma generates it. Keep an ID from an export to update the existing record. Leave `slug` blank to generate it from the title (or `projectSlug` for case studies).
+- Upload an `.xlsx` workbook or `.json` content pack, choose **Validate workbook**, review any row errors, then choose **Import validated data**. The import runs as one transaction: if any row fails, none of the batch is saved. Rows omitted from a file are never deleted.
+
+In Excel, enter tags, capabilities, technologies, evidence, and media IDs one per line. `challengesJson` and `publicLinksJson` accept JSON arrays. JSON packs use arrays for list fields. Case studies link to projects by `projectSlug`; the importer resolves that slug to the database project. Images must reference existing CMS media asset IDs; neither format uploads image files. The upload limit is 5 MB and 500 content records per collection. The feature uses the database connected to the running app, so migrations and database connectivity must be healthy first. New rows with duplicate slugs are rejected; export and keep IDs when updating existing records. Older workbook headers remain supported. Excel uses the same field names as the JSON/API payloads (`status`, `coverImageId`, `tags`, and so on); it does not import the Admin Overview dashboard because that dashboard is computed from the content tables.
+
+## Contact form
+
+The contact endpoint validates submissions server-side and sends plain-text email through Resend when all three `RESEND_API_KEY`, `CONTACT_EMAIL_TO`, and `CONTACT_EMAIL_FROM` values are configured. It does not store contact submissions in PostgreSQL. In production, Upstash is also required for distributed contact rate limiting; requests fail closed if it is unavailable. Without Resend configuration, contact delivery is unavailable.
 
 ## Project commands
 
 ```bash
-npm run dev         # Start the development server
+npm run dev         # Start Next.js locally
 npm run lint        # Run ESLint
 npm run type-check  # Run TypeScript without emitting files
 npm test            # Run Node's built-in test runner
-python -m unittest discover -s tests -p "test_dev_launcher.py"  # Test the local launcher
-npm run build       # Create a production build
-npm run start       # Serve the production build
-```
-
-## PostgreSQL and Prisma
-
-The schema is in `prisma/schema.prisma`; migrations are kept in `prisma/migrations/`.
-Prisma Client is generated into `src/generated/prisma/` during dependency installation.
-Generated files are not committed.
-
-For local PostgreSQL, set `POSTGRES_DB`, `POSTGRES_USER`, and a local-only
-`POSTGRES_PASSWORD`, then set both `DATABASE_URL` and `DIRECT_URL` to the same local
-database using the `postgresql://USER:PASSWORD@localhost:5432/DB?schema=public` format.
-Do not use production credentials in this file. To manage the database manually:
-
-```bash
-docker compose up -d postgres
-docker compose ps
+npm run build       # Build the app
+npm run start       # Run the production build
+npm run db:validate # Validate Prisma schema
 npm run db:migrate:status
-npm run db:validate
-npm run db:migrate:dev -- --name init
-docker compose down
-```
-
-The named `postgres_data` volume retains local database files when the service stops.
-Do not use `docker compose down -v` unless you intentionally want to delete that local data.
-For Neon, set `DATABASE_URL` to the pooled connection string for application traffic and
-`DIRECT_URL` to the direct connection string for Prisma CLI migrations. Never commit either
-URL. Use `npm run db:migrate:deploy` only in an explicitly approved deployment workflow;
-this repository phase does not apply migrations to production.
-
-The database schema has no seeded admin account. Vercel Production builds run migrations and atomically import the initial approved projects and draft case studies once. Render Production pre-deploy applies migrations only; add Render content through the protected admin CMS. Preview deployments skip database migrations. See `docs/DEPLOYMENT.md` and `docs/CONTENT_MAPPING.md` before the first production deployment.
-
-## Admin authentication
-
-The private sign-in page is `/admin/login`; registration is disabled. Configure
-`BETTER_AUTH_SECRET` with a cryptographically random secret of at least 32 bytes and
-`BETTER_AUTH_URL` with the exact application origin. Set `ADMIN_EMAIL` and
-`ADMIN_PASSWORD` only in the local environment for the initial provisioning command.
-The password must be 15–128 characters. Run `npm run admin:provision` once after the
-auth migration is applied. Re-running it for the same administrator does not change
-the existing password; another administrator account is rejected by both the command
-and a database uniqueness constraint.
-
-Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for production sign-in
-throttling. Production authentication fails closed if these are missing or unavailable.
-Local development uses a per-process in-memory limiter. Passwords are hashed with
-Argon2id. No email recovery provider or in-app password change form is configured. To
-rotate the password as the database operator, set `ADMIN_EMAIL` and a new
-`ADMIN_PASSWORD` privately and explicitly run `npm run admin:password`. It updates the
-existing credential and revokes active sessions; it never runs during provisioning or
-deployment. If locked out, the same operator-run procedure is the recovery path.
-
-For a local database, apply the additive migration after checking the active
-`DIRECT_URL`/`DATABASE_URL` points only to the intended local database:
-
-```bash
-npm run db:validate
+npm run db:migrate:dev -- --name describe_change
 npm run db:migrate:deploy
-npm run db:generate
+npm run admin:provision
+npm run admin:password
 ```
 
-This migration adds authentication fields and session/account tables. It retains the
-legacy password-hash column and all existing records. Do not apply it to a remote
-database without an explicitly approved deployment process.
+## Repository layout
 
-## Project structure
+- `src/app/` — Next.js pages, Route Handlers, and protected admin routes
+- `src/components/` — Site UI, contact form, admin UI, and shared components
+- `src/content/` — Static site copy and retained import source files
+- `src/lib/` — Server-side auth, Prisma, CMS, contact, and content services
+- `prisma/` — PostgreSQL schema and ordered migrations
+- `scripts/` — Admin and hosting build helpers
+- `tests/` — Node.js tests and test fixtures
 
-- `src/app/` — App Router pages, contact and auth Route Handlers, and protected admin routes
-- `src/components/` — Site shell, page sections, contact form, admin sign-in controls, and shared UI
-- `src/content/` — Verified static copy and legacy Markdown tooling; public project and blog records are served from the CMS
-- `src/lib/` — Blog loader, contact validation/delivery, Prisma client, and server-only auth policies
-- `prisma/` — PostgreSQL schema and committed migrations
-- `src/lib/prisma.ts` — Server-only Prisma Client singleton
-- `tests/` — Node.js tests and unpublished blog fixtures
-
-## Deployment preparation
-
-The project is a Next.js app that can run as a Node.js service on Vercel or Render. `vercel.json` sets the Vercel Build Command to `npm run build:vercel`. For Vercel Production builds, this runs `npm run db:migrate:deploy`, then the atomic one-time `npm run cms:import-static`, then `npm run build`. Preview builds skip production migrations and initialization and run only the normal build. The initializer's database marker makes later Production builds a no-op for content; it does not replay static files over admin edits. Render's web service setup is described below. The repository's local `dev.py` launcher is only for Docker-based local development. The existing Vercel setup remains documented below; no local Vercel deployment has been performed.
-
-### Render web service
-
-Do not run `dev.py` on Render. It is a local launcher for Docker Compose PostgreSQL and `next dev`. Run tests in GitHub Actions CI, and use Render's managed PostgreSQL for the deployed app.
-
-Keep the existing Render web service on branch `dev` with **Auto-Deploy: On Commit**. Since the service plan does not expose Render's paid Pre-Deploy Command, put migrations in the Build Command:
-
-| Setting | Value |
-|---|---|
-| Build Command | `npm ci && npm run render:migrate && npm run render:provision-admin && npm run build` |
-| Pre-Deploy Command | Leave blank |
-| Start Command | `npm run start` |
-
-`render:migrate` runs pending Prisma migrations before building the app. It skips Render pull request previews and refuses to run outside a Render web service. `render:provision-admin` skips unless both `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set. By default it invokes the existing explicit `admin:provision` CLI to create the initial admin in that service's database. Set `ADMIN_BOOTSTRAP_ACTION=password` only when intentionally rotating an existing admin password through a one-time deploy; this invokes the existing `admin:password` CLI and revokes active sessions. Remove the admin variables from Render after the deploy succeeds. Provisioning never replaces an existing account or password, and the password action fails if the admin does not exist. Do not run either operation at app startup or from a request handler. The migration step does not import `src/content/projects.ts`; public project and blog queries return empty lists until you add CMS records. If migrations cannot reach the internal database URL from Render's build environment, stop the deploy and use a Render plan with Pre-Deploy support or a controlled operator migration; do not weaken database network access to make the build pass.
-
-For the web service's `DATABASE_URL` and `DIRECT_URL`, use the Render Postgres **Internal Database URL** from its Connect page; keep the service and database in the same region. For Render Postgres, the same direct URL serves both app and migration traffic. Do not use local `localhost` URLs, local `POSTGRES_*` settings, or the Neon `DATABASE_URL_UNPOOLED` URL for this Render database. Leave `PORT` to Render.
-
-Set `BETTER_AUTH_URL` and `SITE_URL` to `https://swd-ajmot.onrender.com`, if that remains the service's public URL. The sign-in API returns 503 if `UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_REST_TOKEN` is missing or unavailable; both values are required for production login and contact throttling. After the first pre-deploy succeeds, explicitly provision the one admin against this database with `npm run admin:provision`; do not add admin provisioning to deploy or startup commands. Keep all credentials in Render's environment settings, and rotate any secrets that were exposed in chat before relying on this deployment.
-
-#### Render environment reference
-
-Set these values in the Render **web service** environment. Do not copy real secrets into `.env.example` or commit them.
-
-| Key | Render value |
-|---|---|
-| `DATABASE_URL` | Render Postgres Internal Database URL |
-| `DIRECT_URL` | Same Render Postgres Internal Database URL |
-| `BETTER_AUTH_URL` | `https://swd-ajmot.onrender.com` |
-| `BETTER_AUTH_SECRET` | New private random secret of at least 32 bytes |
-| `SITE_URL` | `https://swd-ajmot.onrender.com` |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash secret token |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
-| `NEXT_PUBLIC_CLOUDINARY_API_KEY` | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret; server-side only |
-| `CLOUDINARY_UPLOAD_PRESET` | Signed preset configured for the app's 8 MB and format limits |
-| `RESEND_API_KEY`, `CONTACT_EMAIL_TO`, `CONTACT_EMAIL_FROM` | Optional contact delivery values; leave blank until verified |
-
-Do not set `POSTGRES_DB`, `POSTGRES_USER`, or `POSTGRES_PASSWORD` on the Render web service; those are for local Docker Compose. Do not set `DATABASE_URL_UNPOOLED` when using Render Postgres. Keep `ADMIN_EMAIL` and `ADMIN_PASSWORD` private. Set both only for a one-time initial provisioning deploy, then remove them after success. For a deliberate password rotation via build, also set `ADMIN_BOOTSTRAP_ACTION=password` and remove all three variables after success. The database stores a password hash, not the plaintext password. The default provisioning action does not reset an existing admin password.
-
-See [Render deploy commands](https://render.com/docs/deploys), [Render Postgres connections](https://render.com/docs/postgresql-creating-connecting), and [Render environment variables](https://render.com/docs/environment-variables).
-
-For Vercel, configure Production `DATABASE_URL` for runtime queries and `DIRECT_URL` for Prisma migrations, both pointing to the same PostgreSQL database. Back up the selected production database and review all pending migrations before the first deployment. Do not set these production database values for Preview deployments; use an isolated Preview database if Preview content must be tested. The configured Vercel production build fails before deployment if the database variables, migrations, or initial import are unavailable. Neither hosting workflow runs initialization on HTTP requests or server startup.
-
-The current production URL is `https://swd-ajmot.vercel.app`; canonical and sitemap URLs use it by default. Set `SITE_URL` only when an approved replacement domain has been configured. In the selected Vercel project's environment settings, configure the server-only variables below for Production (and Preview only when its behavior is understood). Add values through Vercel's secret settings, never to this repository or CI logs:
-
-| Variable | Purpose | Required for |
-|---|---|---|
-| `SITE_URL` | Optional approved HTTPS origin; defaults to `https://swd-ajmot.vercel.app` | Canonical URLs, Open Graph URLs, and sitemap |
-| `RESEND_API_KEY` | Resend server-side API credential | Contact email delivery |
-| `CONTACT_EMAIL_TO` | Recipient controlled by Ajmot | Contact email delivery |
-| `CONTACT_EMAIL_FROM` | Sender address verified with Resend | Contact email delivery |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint | Production contact rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash server-side token | Production contact rate limiting |
-
-When an approved custom domain is configured, set `SITE_URL` to its HTTPS origin before the production build. Connect an already owned domain in the selected Vercel project's Domains settings; add only the DNS records Vercel displays at the current DNS provider, then wait for verification and HTTPS provisioning. Do not purchase a domain or change DNS as part of this preparation. See [Vercel package manager detection](https://vercel.com/docs/package-managers), [environment settings](https://vercel.com/docs/environment-variables), and [custom domain setup](https://vercel.com/docs/domains/set-up-custom-domain).
-
-For contact delivery, use a test recipient you control and a sender verified with Resend. Production contact submissions fail closed unless Upstash is configured. The application does not store leads in a database. Never use a `NEXT_PUBLIC_` prefix for any variable above.
-
-After an approved deployment, smoke-test the home page and each core route, `/robots.txt`, `/sitemap.xml`, an unknown `/work/<slug>` and `/blog/<slug>` (both should return 404), and the privacy notice. Submit one non-sensitive contact test from `/contact` and confirm receipt at the controlled recipient; a success response alone is not proof of inbox delivery. Do not call contact delivery verified until that test arrives.
-
-GitHub Actions CI is defined in `.github/workflows/ci.yml`. It runs on pushes, pull requests, and manual dispatch, uses `npm ci` with `package-lock.json`, and requires no application secrets. It does not deploy. After the first workflow run, configure a GitHub branch ruleset to require the CI job before merging if required checks are desired; no repository settings are changed here.
+Generated Prisma client code is created during `npm ci` and is not committed. Local secrets belong in ignored `.env`/`.env.local` files; production secrets belong in Render environment settings. Never commit environment files, credentials, or database URLs.

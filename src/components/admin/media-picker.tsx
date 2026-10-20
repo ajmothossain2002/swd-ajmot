@@ -132,7 +132,7 @@ export function MediaPicker({ label, selectedIds, onChange, multiple = false }: 
       await load("", { quiet: true });
       setAssets((previous) => [saved, ...previous.filter((asset) => asset.id !== saved.id)]);
       onChange(multiple ? [...new Set([...selectedIds, saved.id])] : [saved.id]);
-      setAltText(""); setAltError(""); setAltTouched(false); setPendingUpload(null); selectFile(); setMessage("Image verified and saved to the media library."); setStage("");
+      setAltText(""); setAltError(""); setAltTouched(false); setPendingUpload(null); selectFile(); setMessage("Image saved to the media library and selected here. Save the content form below to attach it."); setStage("");
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "The image upload failed. Try again.");
       setStage("");
@@ -187,5 +187,6 @@ export function MediaPicker({ label, selectedIds, onChange, multiple = false }: 
       </div>)}
     </div> : <p className="text-sm text-muted">{query ? "No matching images. Try another search or upload an image." : "No images are in the media library yet. Choose an image above to get started."}</p>}
     {selected.length ? <div className="flex flex-wrap items-center gap-3 border-t border-line pt-3"><p className="text-xs text-muted">{selected.length} selected</p><button className="text-xs underline decoration-line underline-offset-4 hover:text-ink" onClick={() => onChange([])} type="button">Clear selection</button><div className="flex gap-2">{selected.slice(0, 5).map((asset) => <img alt="" className="size-10 border border-line object-cover" key={asset.id} src={asset.secureUrl} />)}</div></div> : <p className="text-xs text-muted">No image selected.</p>}
+    <p className="text-xs leading-5 text-muted">Uploading saves an image to the media library and selects it here. Save the content form below to attach it to this item.</p>
   </fieldset>;
 }

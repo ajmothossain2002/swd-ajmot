@@ -17,6 +17,7 @@ export async function WorkGrid({ selectedCategory = "" }: WorkGridProps) {
   const visibleProjects = activeCategory
     ? selectedProjects.filter((project) => project.category === activeCategory)
     : selectedProjects;
+  const firstProjectWithImage = visibleProjects.find((project) => getApprovedProjectImage(project.image))?.slug;
 
   return (
     <section aria-labelledby="work-page-title" className="py-section">
@@ -50,6 +51,7 @@ export async function WorkGrid({ selectedCategory = "" }: WorkGridProps) {
                 featured={project.featured && !activeCategory}
                 href={`/work/${project.slug}`}
                 image={getApprovedProjectImage(project.image)}
+                imageLoading={project.slug === firstProjectWithImage ? "eager" : "lazy"}
                 key={project.slug}
                 status={project.status}
                 tags={project.tags?.length ? project.tags : project.technologies}

@@ -31,9 +31,9 @@ class LauncherTests(unittest.TestCase):
     def test_local_database_configuration_accepts_local_docker_urls(self):
         dev.validate_local_environment(local_settings())
 
-    def test_local_database_configuration_rejects_neon_or_other_remote_hosts(self):
+    def test_local_database_configuration_rejects_remote_hosts(self):
         with self.assertRaisesRegex(dev.LauncherError, "local Docker PostgreSQL"):
-            dev.validate_local_environment(local_settings("ep.example.neon.tech"))
+            dev.validate_local_environment(local_settings("db.remote.example"))
 
     def test_local_database_configuration_rejects_mismatched_user_or_database(self):
         values = local_settings()

@@ -95,7 +95,7 @@ const caseStudyShape = {
   challenges: z.array(challengeSchema).max(30).nullable().optional(),
   architectureNote: optionalText(5000),
   technologies: textList,
-  evidence: textList,
+  evidence: z.array(text(2000)).max(30),
   publicLinks: z.array(publicLinkSchema).max(20).nullable().optional(),
   mediaAssetIds,
   status: publication.status,

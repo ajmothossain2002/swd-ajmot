@@ -9,6 +9,7 @@ type ProjectCardProps = {
   href: string;
   tags?: string[];
   image?: { src: string; alt: string };
+  imageLoading?: "eager" | "lazy";
   actionLabel?: string;
   category?: string;
   status?: string;
@@ -24,6 +25,7 @@ export function ProjectCard({
   featured = false,
   href,
   image,
+  imageLoading = "lazy",
   status,
   tags = [],
   title,
@@ -41,6 +43,7 @@ export function ProjectCard({
               alt={image.alt}
               className="object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transform-none"
               fill
+              loading={imageLoading}
               sizes="(max-width: 768px) 100vw, 50vw"
               src={image.src}
             />

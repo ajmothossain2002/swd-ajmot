@@ -33,7 +33,7 @@ export function CaseStudy({ project }: { project: ProjectCaseStudy }) {
 
         <div className="relative mt-12 aspect-[16/8] overflow-hidden border border-line bg-accent-soft">
           {image ? (
-            <Image alt={image.alt} className="object-cover" fill sizes="(max-width: 768px) 100vw, 84rem" src={image.src} />
+            <Image alt={image.alt} className="object-cover" fill loading="eager" sizes="(max-width: 768px) 100vw, 84rem" src={image.src} />
           ) : (
             <div aria-label="No approved screenshots are available for this project" className="absolute inset-0 flex flex-col justify-between p-6 sm:p-10" role="img">
               <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(135deg,transparent_49.8%,var(--color-line)_50%,transparent_50.2%)]" />

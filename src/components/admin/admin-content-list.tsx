@@ -68,6 +68,12 @@ export function AdminContentList({ resource }: { resource: Resource }) {
 
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
+  useEffect(() => {
+    const refreshAfterImport = () => { void load(); };
+    window.addEventListener("cms-content-imported", refreshAfterImport);
+    return () => window.removeEventListener("cms-content-imported", refreshAfterImport);
+  }, [load]);
+
   async function setPublication(row: ContentRow) {
     const field = resource === "projects" ? "visibility" : "status";
     const current = resource === "projects" ? row.visibility : row.status;
