@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/form-controls";
+import { Toast } from "@/components/ui/toast";
 import { CONTACT_SERVICES, validateContactPayload, type ContactField } from "@/lib/contact-validation.mjs";
 
 type FormErrors = Partial<Record<ContactField, string>>;
@@ -12,6 +13,7 @@ export function ContactForm() {
   const startedAt = useRef(0);
   const [errors, setErrors] = useState<FormErrors>({});
   const [status, setStatus] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [toastOpen, setToastOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -52,7 +54,8 @@ export function ContactForm() {
         return;
       }
 
-      setStatus({ kind: "success", message: result.message ?? "Your enquiry was sent." });
+      setStatus({ kind: "success", message: "Your enquiry was sent. Developer will contact you soon." });
+      setToastOpen(true);
       formRef.current?.reset();
       startedAt.current = Date.now();
     } catch {
@@ -109,6 +112,14 @@ export function ContactForm() {
           {status?.message ?? "Required: name, email, service, and project description. Your details are sent only when delivery is configured."}
         </p>
       </div>
+
+      <Toast
+        duration={8000}
+        message="Developer will contact you soon."
+        onClose={() => setToastOpen(false)}
+        open={toastOpen}
+        title="Enquiry Sent"
+      />
     </form>
   );
 }

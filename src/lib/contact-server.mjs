@@ -119,6 +119,37 @@ async function checkRateLimit(key, { env, fetchImpl, rateLimiter }) {
   }
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function contactEmailHtml(value) {
+  return [
+    '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #111;">',
+    '  <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 24px; border-bottom: 1px solid #e5e5e5; padding-bottom: 12px;">New Project Enquiry</h2>',
+    '  <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">',
+    `    <tr><td style="padding: 8px 0; font-weight: 600; width: 140px; color: #666;">Name</td><td style="padding: 8px 0;">${escapeHtml(value.name)}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Email</td><td style="padding: 8px 0;"><a href="mailto:${escapeHtml(value.email)}">${escapeHtml(value.email)}</a></td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Service</td><td style="padding: 8px 0;">${escapeHtml(value.service)}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Business</td><td style="padding: 8px 0;">${escapeHtml(value.businessName || "Not provided")}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Budget range</td><td style="padding: 8px 0;">${escapeHtml(value.budgetRange || "Not provided")}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Timeline</td><td style="padding: 8px 0;">${escapeHtml(value.timeline || "Not provided")}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Existing website</td><td style="padding: 8px 0;">${value.existingWebsite ? `<a href="${escapeHtml(value.existingWebsite)}">${escapeHtml(value.existingWebsite)}</a>` : "Not provided"}</td></tr>`,
+    `    <tr><td style="padding: 8px 0; font-weight: 600; color: #666;">Preferred contact</td><td style="padding: 8px 0;">${escapeHtml(value.preferredContactMethod || "Not provided")}</td></tr>`,
+    '  </table>',
+    '  <div style="background: #f9f9f9; border-left: 3px solid #111; padding: 16px; margin-top: 16px; border-radius: 4px;">',
+    '    <h3 style="font-size: 13px; font-weight: 600; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em; color: #666;">Project Description</h3>',
+    `    <p style="margin: 0; white-space: pre-wrap; line-height: 1.6; font-size: 14px;">${escapeHtml(value.projectDescription)}</p>`,
+    '  </div>',
+    '</div>',
+  ].join("\n");
+}
+
 function contactEmailText(value) {
   return [
     "New website project enquiry",
@@ -140,8 +171,8 @@ function contactEmailText(value) {
 export async function sendContactEmail(value, options = {}) {
   const env = options.env ?? process.env;
   const apiKey = env.RESEND_API_KEY;
-  const recipient = env.CONTACT_EMAIL_TO;
-  const sender = env.CONTACT_EMAIL_FROM;
+  const recipient = env.CONTACT_EMAIL_TO || "ajmot123.hossain@gmail.com";
+  const sender = env.CONTACT_EMAIL_FROM || "onboarding@resend.dev";
   if (!apiKey || !recipient || !sender) return { ok: false, reason: "not_configured" };
 
   try {
@@ -152,8 +183,9 @@ export async function sendContactEmail(value, options = {}) {
         from: sender,
         to: [recipient],
         reply_to: value.email,
-        subject: `New portfolio enquiry: ${value.service}`,
+        subject: `New portfolio enquiry: ${value.service} (${value.name})`,
         text: contactEmailText(value),
+        html: contactEmailHtml(value),
       }),
       signal: AbortSignal.timeout(10_000),
     });

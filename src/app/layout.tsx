@@ -46,7 +46,7 @@ export default function RootLayout({
 
   return (
     <html className={geistSans.variable} lang="en">
-      <body className="min-h-screen bg-paper text-ink antialiased">
+      <body className="min-h-screen bg-paper text-ink antialiased" suppressHydrationWarning>
         {structuredData ? <StructuredData data={structuredData} /> : null}
         <a className="skip-link" href="#main-content">
           Skip to content
