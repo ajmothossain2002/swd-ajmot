@@ -1,9 +1,53 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { siteNavigation } from "@/content/site";
 import { ButtonLink } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 
 export function SiteHeader() {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (detailsRef.current) {
+      detailsRef.current.open = false;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        detailsRef.current &&
+        detailsRef.current.open &&
+        !detailsRef.current.contains(event.target as Node)
+      ) {
+        detailsRef.current.open = false;
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && detailsRef.current?.open) {
+        detailsRef.current.open = false;
+      }
+    }
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const handleClose = () => {
+    if (detailsRef.current) {
+      detailsRef.current.open = false;
+    }
+  };
+
   return (
     <header className="relative z-10 border-b border-line">
       <PageContainer>
@@ -12,6 +56,7 @@ export function SiteHeader() {
             aria-label="Ajmot Hossain — home"
             className="shrink-0 text-sm font-semibold tracking-[-0.03em]"
             href="/"
+            onClick={handleClose}
           >
             Ajmot Hossain
           </Link>
@@ -31,7 +76,7 @@ export function SiteHeader() {
             </ButtonLink>
           </nav>
 
-          <details className="mobile-navigation group relative xl:hidden">
+          <details className="mobile-navigation group relative xl:hidden" ref={detailsRef}>
             <summary
               aria-controls="mobile-navigation-panel"
               aria-label="Toggle navigation menu"
@@ -53,11 +98,12 @@ export function SiteHeader() {
                   className="block border-b border-line px-3 py-3 text-sm last:border-b-0 hover:text-accent"
                   href={item.href}
                   key={item.href}
+                  onClick={handleClose}
                 >
                   {item.label}
                 </Link>
               ))}
-              <ButtonLink className="mt-3 w-full" href="/contact" variant="primary">
+              <ButtonLink className="mt-3 w-full" href="/contact" onClick={handleClose} variant="primary">
                 Discuss a project
               </ButtonLink>
             </nav>
