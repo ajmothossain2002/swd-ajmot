@@ -37,13 +37,19 @@ export function ProjectCard({
       >
         <div className={`relative overflow-hidden border border-line bg-card ${featured ? "aspect-[16/7]" : "aspect-[4/3]"}`}>
           {image ? (
-            <Image
-              alt={image.alt}
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transform-none"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              src={image.src}
-            />
+            <>
+              <Image
+                alt={image.alt}
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none"
+                fill
+                sizes={featured ? "(max-width: 1024px) 100vw, 66vw" : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"}
+                src={image.src}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-paper/90 via-paper/30 to-accent/15 transition-opacity duration-300 group-hover:from-paper/75 group-hover:to-accent/25"
+              />
+            </>
           ) : (
             <div aria-label="Approved project screenshots are not available" className="absolute inset-0 flex items-end justify-between gap-6 p-5 sm:p-8" role="img">
               <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(135deg,transparent_49.8%,var(--color-line)_50%,transparent_50.2%)]" />

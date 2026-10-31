@@ -70,7 +70,8 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
           </header>
           {post.coverImage ? (
             <div className="relative mx-auto mt-12 aspect-[16/9] max-w-5xl overflow-hidden border border-line bg-accent-soft">
-              <Image alt={post.coverImage.alt} className="object-cover" fill sizes="(max-width: 768px) 100vw, 64rem" src={post.coverImage.src} />
+              <Image alt={post.coverImage.alt} className="object-cover" fill priority sizes="(max-width: 768px) 100vw, 64rem" src={post.coverImage.src} />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-paper/85 via-paper/30 to-accent/15" />
             </div>
           ) : null}
           <div className="prose-editorial mx-auto mt-12 max-w-3xl" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />

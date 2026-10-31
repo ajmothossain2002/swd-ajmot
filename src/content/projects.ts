@@ -79,8 +79,12 @@ export const projects: ProjectCaseStudy[] = [
     technologies: ["C++", "gRPC", "Protocol Buffers", "Python", "FastAPI", "PostgreSQL"],
     evidence: [
       "Project scope, listed capabilities, technologies, role, challenges, and internal-use status were supplied by Ajmot.",
-      "No approved screenshots, public demo, or source repository are available for this page.",
+      "Approved interface prototype supplied by Ajmot.",
     ],
+    image: {
+      src: "/assets/projects/enterprise-erp-system.jpg",
+      alt: "Enterprise ERP System dashboard interface showing finance, sales, and inventory management",
+    },
     featured: true,
   },
   {
@@ -94,6 +98,10 @@ export const projects: ProjectCaseStudy[] = [
     evidence: [
       "The project is described as an e-commerce application. Build scope, role, technology, and public availability have not been confirmed.",
     ],
+    image: {
+      src: "/assets/projects/gpu-store.jpg",
+      alt: "GPU Store e-commerce product showcase and custom gaming PC specifications",
+    },
   },
   {
     slug: "the-villagers-cafe",
@@ -106,6 +114,10 @@ export const projects: ProjectCaseStudy[] = [
     evidence: [
       "The project is described as a business website. Specific functionality, publication permission, and live URL have not been confirmed.",
     ],
+    image: {
+      src: "/assets/projects/the-villagers-cafe.jpg",
+      alt: "The Villagers Cafe web interface featuring restaurant menu and online ordering",
+    },
   },
   {
     slug: "event-community-accounting-erp",
@@ -129,8 +141,12 @@ export const projects: ProjectCaseStudy[] = [
     technologies: [],
     evidence: [
       "Project status, intended users, role, and focus areas were supplied by Ajmot.",
-      "No demo, screenshots, or verified workflow details are available for publication.",
+      "Approved interface prototype supplied by Ajmot.",
     ],
+    image: {
+      src: "/assets/projects/event-community-accounting-erp.jpg",
+      alt: "Event and Community Accounting ERP dashboard displaying donation and campaign statistics",
+    },
   },
   {
     slug: "barberx",
@@ -143,6 +159,10 @@ export const projects: ProjectCaseStudy[] = [
     evidence: [
       "The project is described as a barber booking/backend project. Specific workflows, role, technology, and public availability have not been confirmed.",
     ],
+    image: {
+      src: "/assets/projects/barberx.jpg",
+      alt: "BarberX appointment booking dashboard displaying clients, schedules, and salon services",
+    },
   },
   {
     slug: "private-store",
@@ -167,6 +187,10 @@ export const projects: ProjectCaseStudy[] = [
     evidence: [
       "The project is described as a car or vehicle rental application. Specific workflows, role, technology, and public availability have not been confirmed.",
     ],
+    image: {
+      src: "/assets/projects/rental-application.jpg",
+      alt: "Car rental application dashboard showing available vehicles, booking dates, and reservations",
+    },
   },
 ];
 
